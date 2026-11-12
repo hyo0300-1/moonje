@@ -1,0 +1,2750 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>국어 스튜디오 · 비해당학원</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+/* 국어 스튜디오 - 공통 스타일 */
+:root {
+  --bg: #f6f6f7;
+  --panel: #ffffff;
+  --panel-2: #fafafa;
+  --fg: #18181b;
+  --fg-2: #52525b;
+  --muted: #71717a;
+  --line: #e4e4e7;
+  --line-2: #d4d4d8;
+  --accent: #904ae8;
+  --accent-weak: color-mix(in oklab, var(--accent) 12%, transparent);
+  --accent-fg: #ffffff;
+  --ok: #16a34a;
+  --warn: #d97706;
+  --bad: #dc2626;
+  --warn-bg: #fef3c7;
+  --radius: 10px;
+  --radius-s: 6px;
+  --font: "Pretendard", "Pretendard Variable", -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.06);
+}
+[data-theme="dark"] {
+  --bg: #111113;
+  --panel: #18181b;
+  --panel-2: #1f1f23;
+  --fg: #f4f4f5;
+  --fg-2: #c4c4cc;
+  --muted: #9a9aa3;
+  --line: #2a2a30;
+  --line-2: #3a3a42;
+  --warn-bg: #3a2a0b;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 14px/1.55 var(--font); color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); text-decoration: none; }
+h1, h2, h3, h4 { margin: 0; letter-spacing: -0.02em; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- 레이아웃 ---------- */
+.app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; }
+.side { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 18px 18px 14px; }
+.brand .logo { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.brand b { display: block; font-size: 15px; letter-spacing: -0.02em; }
+.brand span { font-size: 11px; color: var(--muted); }
+.cmd-btn { margin: 4px 14px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--muted); cursor: pointer; font-size: 13px; }
+.cmd-btn kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; background: var(--panel); }
+.nav { padding: 4px 10px 16px; overflow: auto; flex: 1; }
+.nav .grp { font-size: 11px; color: var(--muted); padding: 14px 8px 6px; font-weight: 600; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; color: var(--fg-2); font-size: 13.5px; }
+.nav a svg { width: 16px; height: 16px; flex: none; opacity: .75; }
+.nav a:hover { background: var(--panel-2); color: var(--fg); }
+.nav a.on { background: var(--accent-weak); color: var(--accent); font-weight: 600; }
+.nav a.on svg { opacity: 1; }
+.nav a .tag { margin-left: auto; font-size: 10px; color: var(--muted); font-weight: 500; font-style: normal; }
+.side-foot { border-top: 1px solid var(--line); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.top { height: 52px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.crumb { font-size: 13px; color: var(--muted); }
+.crumb b { color: var(--fg); font-weight: 600; }
+.top-r { display: flex; align-items: center; gap: 8px; }
+.view { flex: 1; overflow: auto; padding: 24px 28px 80px; }
+.view:focus { outline: none; }
+.view.flush { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.page-head h1 { font-size: 22px; font-weight: 700; }
+.page-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+/* ---------- 공통 컴포넌트 ---------- */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.card-h h3 { font-size: 14px; font-weight: 600; }
+.card-h .sub { font-size: 12px; color: var(--muted); }
+.card-b { padding: 16px 18px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.tiny { font-size: 11px; }
+.hidden { display: none !important; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--panel); cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.btn:hover { background: var(--panel-2); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn.primary:hover { filter: brightness(1.05); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn.ghost:hover { background: var(--panel-2); }
+.btn.danger { color: var(--bad); }
+.btn.sm { height: 26px; padding: 0 8px; font-size: 12px; border-radius: 6px; }
+.btn svg { width: 15px; height: 15px; }
+.icon-btn { width: 28px; height: 28px; padding: 0; }
+
+.seg { display: inline-flex; padding: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; gap: 2px; }
+.seg button { border: 0; background: transparent; height: 28px; padding: 0 12px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--fg-2); }
+.seg button.on { background: var(--panel); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > label, .lbl { font-size: 12px; color: var(--fg-2); font-weight: 500; }
+.input, select.input, textarea.input { height: 34px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 7px; background: var(--panel); outline: none; min-width: 0; }
+textarea.input { height: auto; padding: 10px; line-height: 1.7; resize: vertical; }
+.field .input { width: 100%; }
+.input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; border: 1px solid var(--line); color: var(--fg-2); background: var(--panel); white-space: nowrap; }
+.chip.accent { border-color: transparent; background: var(--accent-weak); color: var(--accent); font-weight: 600; }
+.chip.ok { border-color: transparent; background: color-mix(in oklab, var(--ok) 14%, transparent); color: var(--ok); }
+.chip.warn { border-color: transparent; background: color-mix(in oklab, var(--warn) 16%, transparent); color: var(--warn); }
+.chip.bad { border-color: transparent; background: color-mix(in oklab, var(--bad) 14%, transparent); color: var(--bad); }
+.chip.btnchip { cursor: pointer; }
+.chip.btnchip.on { background: var(--accent); color: #fff; border-color: transparent; }
+.switch { position: relative; width: 34px; height: 20px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line-2); transition: .15s; cursor: pointer; }
+.switch span::after { content: ""; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; border-radius: 50%; background: #fff; transition: .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { left: 16px; }
+.empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+.bar-track { height: 6px; background: var(--panel-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+.bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl tr:last-child td { border-bottom: 0; }
+
+/* ---------- 작업 큐 ---------- */
+.jobs-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+.drawer { position: fixed; top: 52px; right: 0; bottom: 0; width: 380px; background: var(--panel); border-left: 1px solid var(--line); box-shadow: var(--shadow); transform: translateX(100%); transition: transform .2s; z-index: 30; display: flex; flex-direction: column; }
+.drawer.open { transform: none; }
+.drawer-h { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.drawer-b { overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.job { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; }
+.job-t { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 600; }
+.job-s { font-size: 12px; color: var(--muted); margin: 4px 0 8px; }
+.job-ev { margin-top: 8px; max-height: 160px; overflow: auto; font-size: 11.5px; font-family: var(--mono); color: var(--fg-2); background: var(--panel-2); border-radius: 6px; padding: 6px 8px; }
+.job-ev div { white-space: pre-wrap; }
+.job-ev .fallback { color: var(--warn); }
+.job-ev .failed { color: var(--bad); }
+
+/* ---------- 작업 요청창 ---------- */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; }
+.palette { width: min(620px, 92vw); background: var(--panel); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; border: 1px solid var(--line); }
+.palette input { width: 100%; border: 0; border-bottom: 1px solid var(--line); padding: 16px 18px; font-size: 15px; outline: none; background: transparent; }
+.palette .list { max-height: 360px; overflow: auto; padding: 6px; }
+.palette .it { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13.5px; }
+.palette .it.on { background: var(--accent-weak); }
+.palette .it small { margin-left: auto; color: var(--muted); font-size: 11.5px; }
+.palette .plan { padding: 12px 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--fg-2); background: var(--panel-2); }
+.palette .plan ol { margin: 6px 0 0; padding-left: 18px; }
+
+.toast-wrap { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.toast { background: #18181b; color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; box-shadow: var(--shadow); animation: tin .2s ease-out; }
+.toast.bad { background: var(--bad); }
+@keyframes tin { from { opacity: 0; transform: translateY(6px); } }
+
+/* ---------- 시험지 분석·저장 ---------- */
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.mode { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; background: var(--panel); text-align: left; }
+.mode b { display: block; font-size: 14px; }
+.mode span { font-size: 12px; color: var(--muted); }
+.mode.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+.drop { border: 1.5px dashed var(--line-2); border-radius: 10px; padding: 26px 16px; text-align: center; background: var(--panel-2); transition: .15s; }
+.drop.over { border-color: var(--accent); background: var(--accent-weak); }
+.drop b { font-size: 14px; }
+.drop p { margin: 4px 0 12px; font-size: 12px; color: var(--muted); }
+.pages { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 10px; }
+.pg { flex: none; width: 150px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); overflow: hidden; }
+.pg.dragging { opacity: .4; }
+.pg.over { border-color: var(--accent); }
+.pg .th { height: 190px; background: var(--panel-2) center/contain no-repeat; position: relative; cursor: grab; display: grid; place-items: center; color: var(--muted); font-size: 11px; }
+.pg .th .no { position: absolute; left: 6px; top: 6px; background: rgba(0,0,0,.65); color: #fff; font-size: 11px; border-radius: 5px; padding: 1px 6px; }
+.pg .meta { padding: 6px 8px; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
+.pg .tools { display: flex; border-top: 1px solid var(--line); }
+.pg .tools button { flex: 1; border: 0; background: transparent; height: 28px; cursor: pointer; color: var(--fg-2); font-size: 11px; }
+.pg .tools button:hover { background: var(--panel-2); color: var(--fg); }
+.pg .tools button + button { border-left: 1px solid var(--line); }
+.chain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.chain .arr { color: var(--muted); }
+.res-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); padding: 0 18px; }
+.res-tabs button { border: 0; background: transparent; padding: 11px 12px; cursor: pointer; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.res-tabs button.on { color: var(--fg); font-weight: 600; border-color: var(--accent); }
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: 640px; }
+.ed-img { position: relative; overflow: auto; background: var(--panel-2); border-right: 1px solid var(--line); }
+.ed-img .wrap { position: relative; margin: 12px auto; width: fit-content; }
+.ed-img img { display: block; max-width: none; }
+.ed-img svg { position: absolute; inset: 0; }
+.ed-img rect { fill: transparent; stroke: transparent; stroke-width: 2; cursor: pointer; }
+.ed-img rect.low { fill: rgba(245, 158, 11, .14); stroke: rgba(245, 158, 11, .7); }
+.ed-img rect.on { fill: color-mix(in oklab, var(--accent) 20%, transparent); stroke: var(--accent); }
+.ed-img .noimg { padding: 40px; color: var(--muted); text-align: center; }
+.ed-lines { overflow: auto; padding: 8px 0; }
+.ln { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 6px; padding: 2px 12px; }
+.ln .n { font: 11px var(--mono); color: var(--muted); text-align: right; }
+.ln input { border: 1px solid transparent; border-radius: 5px; padding: 4px 6px; background: transparent; outline: none; width: 100%; font-size: 13.5px; }
+.ln input:focus { border-color: var(--accent); background: var(--panel); }
+.ln.low input { background: var(--warn-bg); }
+.ln.edited input { box-shadow: inset 3px 0 0 var(--ok); }
+.ln.on { background: var(--accent-weak); }
+.ln .c { font: 11px var(--mono); color: var(--muted); text-align: right; }
+.ln.low .c { color: var(--warn); font-weight: 600; }
+.ed-bar { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.items { display: flex; flex-direction: column; gap: 10px; }
+.item { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.item.need { border-color: color-mix(in oklab, var(--warn) 55%, var(--line)); background: color-mix(in oklab, var(--warn) 5%, var(--panel)); }
+.item-h { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.item-h .no { font-weight: 700; font-size: 15px; margin-right: 4px; }
+.item .stem { font-size: 13.5px; }
+.item .boogi { margin: 8px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; color: var(--fg-2); white-space: pre-wrap; }
+.item ol.ch { margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; display: grid; gap: 2px; }
+.item ol.ch li { color: var(--fg-2); }
+.set-h { font-size: 12.5px; color: var(--fg-2); padding: 8px 12px; background: var(--panel-2); border-radius: 8px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.stat .k { font-size: 12px; color: var(--muted); }
+.stat .v { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.hbar { display: grid; grid-template-columns: 90px 1fr 36px; align-items: center; gap: 10px; font-size: 12.5px; margin: 6px 0; }
+.hbar .t { height: 10px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+.hbar .f { height: 100%; background: var(--accent); border-radius: 999px; }
+.hbar .v { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- 자료함 ---------- */
+.lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.lib .card { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.lib .card h3 { font-size: 14px; }
+
+/* ---------- 설정 ---------- */
+.settings { display: grid; grid-template-columns: 200px minmax(0, 720px); gap: 32px; }
+.settings > div:last-child { padding-bottom: 90px; }
+.s-nav { position: sticky; top: 0; align-self: start; display: flex; flex-direction: column; gap: 2px; }
+.s-nav a { padding: 7px 10px; border-radius: 7px; font-size: 13px; color: var(--fg-2); }
+.s-nav a.on { background: var(--panel); color: var(--fg); font-weight: 600; box-shadow: inset 2px 0 0 var(--accent); }
+.s-sec { margin-bottom: 36px; scroll-margin-top: 10px; }
+.s-sec h2 { font-size: 18px; font-weight: 700; }
+.s-sec > p { margin: 4px 0 12px; color: var(--muted); font-size: 13px; }
+.s-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 280px); gap: 16px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.s-row:last-child { border-bottom: 0; }
+.s-row b { display: block; font-size: 13.5px; font-weight: 600; }
+.s-row span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.s-row .ctl { display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
+.s-row.changed b::after { content: "변경됨"; margin-left: 8px; font-size: 10.5px; color: var(--accent); font-weight: 600; }
+.s-group { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0 18px; }
+.savebar { position: sticky; bottom: 0; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); transform: translateY(120%); opacity: 0; transition: .2s; }
+.savebar.show { transform: none; opacity: 1; }
+.chain-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.chain-item { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; background: var(--panel); }
+.chain-item .i { font: 11px var(--mono); color: var(--muted); width: 16px; }
+.danger-zone { border-color: color-mix(in oklab, var(--bad) 40%, var(--line)); }
+
+/* ---------- 주석 달기 ---------- */
+.anno { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.anno-out { padding: 22px 26px; }
+.anno-line { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(180px, 38%); gap: 14px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.anno-out.note .anno-line { grid-template-columns: 28px minmax(0, 1fr); }
+.anno-line .ln-no { font: 11px var(--mono); color: var(--muted); padding-top: 5px; text-align: right; }
+.anno-line .tx { font-family: "Noto Serif KR", "Nanum Myeongjo", "Batang", "바탕", "AppleMyungjo", serif; font-size: 16px; line-height: 2.1; }
+.anno-line .notes { display: flex; flex-direction: column; gap: 4px; padding-top: 3px; }
+.anno-out.note .anno-line .notes { grid-column: 2; padding-top: 0; }
+mark.a { background: transparent; border-bottom: 2px solid; padding: 0 1px; cursor: pointer; color: inherit; }
+mark.a.blank { color: transparent; border-bottom: 1.5px solid var(--fg); background: transparent; }
+.note { font-size: 12px; line-height: 1.5; border-left: 3px solid; padding: 2px 8px; border-radius: 0 5px 5px 0; background: var(--panel-2); display: flex; gap: 6px; align-items: flex-start; }
+.note .cat { font-weight: 700; white-space: nowrap; }
+.note .txt { flex: 1; outline: none; }
+.note .acts { display: none; gap: 2px; }
+.note:hover .acts { display: flex; }
+.note .acts button { border: 0; background: transparent; cursor: pointer; font-size: 11px; color: var(--muted); padding: 0 3px; }
+.note.pinned { box-shadow: inset 0 0 0 1px var(--accent); }
+.legend { display: flex; gap: 6px; flex-wrap: wrap; }
+.dens { display: flex; align-items: center; gap: 10px; }
+.dens input[type=range] { accent-color: var(--accent); width: 160px; }
+
+/* ---------- 시험지 제작 ---------- */
+.steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 18px; }
+.step { border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; background: var(--panel); }
+.step b { display: block; font-size: 13px; }
+.step span { font-size: 11.5px; color: var(--muted); }
+.step.on { border-color: var(--accent); background: var(--accent-weak); }
+.step.off { opacity: .55; }
+.ans { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-2); font-size: 12px; font-weight: 600; }
+.ans.a1 { background: #ede9fe; } .ans.a2 { background: #dbeafe; } .ans.a3 { background: #dcfce7; } .ans.a4 { background: #fef3c7; } .ans.a5 { background: #fee2e2; }
+[data-theme="dark"] .ans { color: #18181b; }
+.cell-in { border: 1px solid transparent; background: transparent; border-radius: 5px; padding: 3px 6px; width: 100%; outline: none; }
+.cell-in:hover { border-color: var(--line); }
+.cell-in:focus { border-color: var(--accent); background: var(--panel); }
+
+/* ---------- 디자인 작업대 ---------- */
+.wb { display: grid; grid-template-columns: 320px minmax(0, 1fr) 120px; flex: 1; min-height: 0; }
+.wb-left { border-right: 1px solid var(--line); background: var(--panel); overflow: auto; display: flex; flex-direction: column; }
+.wb-tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 2; }
+.wb-tabs button { border: 0; background: transparent; padding: 11px 4px; cursor: pointer; font-size: 12.5px; color: var(--muted); border-bottom: 2px solid transparent; }
+.wb-tabs button.on { color: var(--fg); font-weight: 600; border-color: var(--accent); }
+.wb .seg button { padding: 0 8px; white-space: nowrap; font-size: 12px; }
+.wb-panel { padding: 14px 16px 30px; display: flex; flex-direction: column; gap: 14px; }
+.wb-sec h4 { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+.slot-card { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.slot-card.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+.slot-card .sh { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.slot-card .sh b { font-size: 13px; }
+.slot-body { display: flex; flex-direction: column; gap: 8px; }
+.img-pick { display: flex; gap: 8px; align-items: center; }
+.img-pick .pv { width: 84px; height: 40px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-2) center/cover no-repeat; position: relative; cursor: crosshair; flex: none; }
+.img-pick .pv i { position: absolute; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.5); transform: translate(-50%, -50%); }
+.mini { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 8px; font-size: 12px; }
+.mini input[type=range] { accent-color: var(--accent); width: 100%; }
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.sw { width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line-2); cursor: pointer; }
+.sw.on { box-shadow: 0 0 0 2px var(--accent); }
+.wb-center { overflow: auto; background: color-mix(in oklab, var(--bg) 70%, #a1a1aa 30%); position: relative; }
+[data-theme="dark"] .wb-center { background: #0b0b0d; }
+.wb-toolbar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.wb-canvas { padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.wb-warn { font-size: 12px; color: var(--warn); }
+.wb-right { border-left: 1px solid var(--line); background: var(--panel); overflow: auto; padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.thumbw { cursor: pointer; text-align: center; font-size: 10.5px; color: var(--muted); }
+.thumbw .tb { background: #fff; box-shadow: 0 0 0 1px var(--line-2); overflow: hidden; position: relative; }
+.thumbw.on .tb { box-shadow: 0 0 0 2px var(--accent); }
+.sheet-scale { transform-origin: top left; }
+.sheet { background: #fff; color: #18181b; position: relative; box-shadow: 0 2px 10px rgba(0,0,0,.18); overflow: hidden; display: flex; flex-direction: column; font-family: "Noto Serif KR", "Nanum Myeongjo", "Batang", "바탕", "AppleMyungjo", serif; }
+.sheet .hdr { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 6mm; background-repeat: no-repeat; font-family: var(--font); cursor: pointer; flex: none; }
+.sheet .hdr.drop-over { outline: 3px dashed #904ae8; outline-offset: -3px; }
+.sheet .hdr .ht { font-weight: 700; font-size: 13pt; letter-spacing: -0.02em; position: relative; z-index: 1; }
+.sheet .hdr .hs { font-size: 9pt; opacity: .85; position: relative; z-index: 1; }
+.sheet .hdr .tint { position: absolute; inset: 0; }
+.sheet .hdr .logo-img { height: 70%; position: relative; z-index: 1; }
+.sheet .hdr-hint { position: absolute; right: 6px; bottom: 4px; font: 9px var(--font); background: rgba(0,0,0,.55); color: #fff; padding: 1px 6px; border-radius: 4px; z-index: 2; opacity: 0; transition: .15s; }
+.sheet .hdr:hover .hdr-hint { opacity: 1; }
+.sheet .body { flex: 1; display: grid; gap: 7mm; min-height: 0; position: relative; }
+.sheet .colm { overflow: hidden; position: relative; }
+.sheet .colm + .colm::before { content: ""; position: absolute; left: -3.5mm; top: 0; bottom: 0; border-left: 0.3mm solid #d4d4d8; }
+.sheet .ftr { flex: none; display: flex; justify-content: space-between; align-items: center; font: 8.5pt var(--font); color: #52525b; border-top: 0.3mm solid #d4d4d8; padding-top: 2mm; }
+.sheet .wm { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 0; }
+.sheet .wm img { max-width: 60%; max-height: 50%; }
+.sheet .wm span { font: 700 48pt var(--font); transform: rotate(-30deg); color: #18181b; }
+.blk { margin-bottom: 5mm; position: relative; z-index: 1; }
+.blk .setline { font-size: 0.95em; font-weight: 700; margin-bottom: 2mm; font-family: var(--font); }
+.blk .divider { height: 1.6mm; border-radius: 1mm; margin-bottom: 2.5mm; background-size: cover; background-position: center; }
+.blk .passage { border: 0.3mm solid #a1a1aa; padding: 3mm; text-align: justify; white-space: pre-wrap; }
+.blk .q { font-weight: 600; }
+.blk .qn { font-weight: 800; margin-right: 1.5mm; }
+.blk .bg { border: 0.3mm solid #71717a; padding: 2mm 3mm; margin: 1.5mm 0; font-size: .93em; white-space: pre-wrap; }
+.blk .chs { padding-left: 2mm; }
+.sheet.cover { justify-content: center; align-items: center; text-align: center; font-family: var(--font); }
+.sheet.cover .cv-bg { position: absolute; inset: 0; background-repeat: no-repeat; }
+.sheet.cover .cv-in { position: relative; z-index: 1; padding: 20mm; }
+.sheet.cover h1 { font-size: 30pt; letter-spacing: -0.03em; }
+.sheet.cover p { font-size: 13pt; margin-top: 6mm; }
+
+/* ---------- 인쇄 ---------- */
+#print-root { display: none; }
+@media print {
+  body > *:not(#print-root) { display: none !important; }
+  #print-root { display: block !important; }
+  #print-root .sheet { box-shadow: none; break-after: page; }
+}
+
+@media (max-width: 1100px) {
+  .app { grid-template-columns: 64px 1fr; }
+  .brand div, .nav .grp, .nav a span, .nav a .tag, .cmd-btn span, .side-foot span { display: none; }
+  .cmd-btn { justify-content: center; }
+  .anno { grid-template-columns: 1fr; }
+  .wb { grid-template-columns: 280px minmax(0, 1fr); }
+  .wb-right { display: none; }
+  .settings { grid-template-columns: 1fr; }
+  .s-nav { display: none; }
+  .editor { grid-template-columns: 1fr; height: auto; }
+  .ed-img { height: 420px; }
+}
+
+</style>
+<!-- 외부 라이브러리 (설치 없이 CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="주 메뉴">
+    <div class="brand"><div class="logo">비</div><div><b>국어 스튜디오</b><span>비해당학원</span></div></div>
+    <button class="cmd-btn" id="cmd-open" aria-label="작업 요청창 열기"><span>작업 요청…</span><kbd>Ctrl K</kbd></button>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot"><span>로컬 시연판 · 데이터는 이 브라우저에만 저장</span><button class="btn ghost icon-btn" id="theme-btn" aria-label="화면 테마 전환" title="화면 테마 전환"></button></div>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <div class="crumb" id="crumb"></div>
+      <div class="top-r">
+        <button class="btn ghost jobs-btn" id="jobs-btn" aria-label="작업 큐 열기"></button>
+      </div>
+    </header>
+    <section class="view" id="view" tabindex="-1"></section>
+  </main>
+</div>
+<aside class="drawer" id="drawer" aria-label="작업 큐">
+  <div class="drawer-h"><b>작업 큐</b><button class="btn ghost sm" id="drawer-close">닫기</button></div>
+  <div class="drawer-b" id="drawer-b"></div>
+</aside>
+<div class="toast-wrap" id="toasts"></div>
+<div id="print-root" aria-hidden="true"></div>
+
+<script>
+/* 국어 스튜디오 - 공통: 유틸, 저장소, 설정, 작업 큐, 라우터, 작업 요청창 */
+window.App = window.App || {};
+(function (A) {
+  'use strict';
+
+  // ---------- 유틸 ----------
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  function h(tag, attrs, ...kids) {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if (v === true) el.setAttribute(k, '');
+      else el.setAttribute(k, v);
+    }
+    for (const k of kids.flat(Infinity)) {
+      if (k == null || k === false) continue;
+      el.append(k.nodeType ? k : document.createTextNode(String(k)));
+    }
+    return el;
+  }
+  const uid = (p = '') => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtDate = (t) => new Date(t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  function deepMerge(base, over) {
+    if (Array.isArray(base) || typeof base !== 'object' || base === null) return over === undefined ? base : over;
+    const out = { ...base };
+    for (const k of Object.keys(over || {})) out[k] = k in base ? deepMerge(base[k], over[k]) : over[k];
+    return out;
+  }
+  function toast(msg, kind) {
+    const t = h('div', { class: 'toast' + (kind === 'bad' ? ' bad' : ''), role: 'status' }, msg);
+    $('#toasts').append(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+  function download(name, text, type = 'text/plain;charset=utf-8') {
+    const a = h('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name });
+    document.body.append(a); a.click(); a.remove();
+  }
+
+  // 아이콘 (Lucide 스타일 단순 SVG)
+  const ICON = {
+    scan: '<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
+    note: '<path d="M4 4h12l4 4v12H4z"/><path d="M8 10h8M8 14h5"/><path d="M16 4v4h4"/>',
+    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8"/>',
+    layers: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+    pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+    palette: '<circle cx="13.5" cy="6.5" r="1.2"/><circle cx="17.5" cy="10.5" r="1.2"/><circle cx="8.5" cy="7.5" r="1.2"/><path d="M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 9.8C22 5.5 17.5 2 12 2z"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 6.6 19.6l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H2.6a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.4 6.6l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 2.7-1.1V2.6a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.1a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
+    queue: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/>',
+    camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+    undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
+    redo: '<path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/>',
+    printer: '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/>',
+  };
+  const icon = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name] || ''}</svg>`;
+
+  // ---------- IndexedDB 저장소 ----------
+  const DB = {
+    _db: null,
+    open() {
+      if (this._db) return Promise.resolve(this._db);
+      return new Promise((res, rej) => {
+        const r = indexedDB.open('kor-studio', 2);
+        r.onupgradeneeded = () => {
+          const d = r.result;
+          for (const s of ['documents', 'annotations', 'assets', 'builds']) if (!d.objectStoreNames.contains(s)) d.createObjectStore(s, { keyPath: 'id' });
+        };
+        r.onsuccess = () => { this._db = r.result; res(this._db); };
+        r.onerror = () => rej(r.error);
+      });
+    },
+    async tx(store, mode, fn) {
+      const d = await this.open();
+      return new Promise((res, rej) => {
+        const t = d.transaction(store, mode);
+        const req = fn(t.objectStore(store));
+        t.oncomplete = () => res(req ? req.result : undefined);
+        t.onerror = () => rej(t.error);
+      });
+    },
+    put(store, obj) { return this.tx(store, 'readwrite', (s) => s.put(obj)).then(() => obj); },
+    get(store, id) { return this.tx(store, 'readonly', (s) => s.get(id)); },
+    all(store) { return this.tx(store, 'readonly', (s) => s.getAll()); },
+    del(store, id) { return this.tx(store, 'readwrite', (s) => s.delete(id)); },
+    clear(store) { return this.tx(store, 'readwrite', (s) => s.clear()); },
+  };
+
+  // ---------- 설정 ----------
+  const ENGINE_LABEL = {
+    pdf_text: 'PDF 글자 레이어', parsed: '파일 직접 읽기', gemini: 'Gemini 판독', dedicated_ocr: '전용 OCR(로컬)',
+    tile_mode: '타일 모드', manual: '수동 확인', reference_mode: '참조형 구조화(AI)', rule_based: '규칙 기반 구조화',
+  };
+  const OUTCOME_LABEL = { ok: '완료', blocked_copyright: '저작권 차단', blocked_safety: '안전 차단', truncated: '잘림', error: '오류', low_quality: '품질 낮음', skipped: '건너뜀' };
+  const DEFAULT_SETTINGS = {
+    account: { name: '', email: '' },
+    brand: { academyName: '비해당학원', headerText: '', footerText: '수업용 자체 제작 자료', accent: '#904ae8' },
+    output: { quickAnswers: false, promptTitles: true, answerPlacement: 'end', paper: 'B4' },
+    annotation: { density: 3, layout: 'wing', autoHighlight: true },
+    ocr: { chain: ['gemini', 'dedicated_ocr', 'tile_mode', 'manual'], disabled: [], structure: ['reference_mode', 'rule_based'], lowConf: 70, enhance: true, lang: 'kor+eng' },
+    ai: { geminiKey: '', model: 'gemini-2.5-flash' },
+    ui: { theme: 'light' },
+    notify: { jobDone: true },
+  };
+  const Settings = {
+    key: 'ks.settings',
+    histKey: 'ks.settings.history',
+    get() {
+      try { return deepMerge(DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(this.key) || '{}')); } catch { return clone(DEFAULT_SETTINGS); }
+    },
+    save(next) {
+      const prev = this.get();
+      const diff = [];
+      (function walk(a, b, p) {
+        for (const k of new Set([...Object.keys(a || {}), ...Object.keys(b || {})])) {
+          const av = a?.[k], bv = b?.[k], path = p ? p + '.' + k : k;
+          if (av && bv && typeof av === 'object' && !Array.isArray(av)) walk(av, bv, path);
+          else if (JSON.stringify(av) !== JSON.stringify(bv)) diff.push({ path, from: k === 'geminiKey' ? (av ? '••••' : '') : av, to: k === 'geminiKey' ? (bv ? '••••' : '') : bv });
+        }
+      })(prev, next, '');
+      localStorage.setItem(this.key, JSON.stringify(next));
+      if (diff.length) {
+        const hist = JSON.parse(localStorage.getItem(this.histKey) || '[]');
+        hist.unshift({ at: Date.now(), diff });
+        localStorage.setItem(this.histKey, JSON.stringify(hist.slice(0, 50)));
+      }
+      A.applyTheme();
+      return diff;
+    },
+    history() { return JSON.parse(localStorage.getItem(this.histKey) || '[]'); },
+    defaults() { return clone(DEFAULT_SETTINGS); },
+  };
+
+  // ---------- 작업 큐 (서버 jobs 테이블과 같은 모양) ----------
+  const KIND_LABEL = { ocr: '텍스트화', structure: '구조화', analyze: '시험지 분석', annotate: 'AI 주석', render: '출력' };
+  const Jobs = {
+    list: [], queue: [], running: false, subs: new Set(),
+    create(kind, title, input, run) {
+      const job = { id: uid('job_'), kind, title, input, status: 'queued', stage: '대기 중', progress: 0, events: [], created_at: Date.now(), created_via: 'ui' };
+      this.list.unshift(job);
+      this.queue.push({ job, run });
+      this.event(job, 'queued', '대기열에 등록');
+      this.pump();
+      return job;
+    },
+    async pump() {
+      if (this.running) return;
+      const next = this.queue.shift();
+      if (!next) return;
+      this.running = true;
+      const { job, run } = next;
+      if (job.status === 'cancelled') { this.running = false; return this.pump(); }
+      job.status = 'running'; job.started_at = Date.now();
+      const ctx = {
+        job,
+        stage: (s, p) => { job.stage = s; if (p != null) job.progress = p; this.event(job, 'stage', s); },
+        progress: (p) => { job.progress = Math.max(0, Math.min(100, p)); this.emit(); },
+        log: (type, msg) => this.event(job, type, msg),
+        cancelled: () => job.status === 'cancelled',
+      };
+      try {
+        const r = await run(ctx);
+        if (job.status !== 'cancelled') { job.status = job.needsReview ? 'needs_review' : 'completed'; job.progress = 100; job.result = r; job.stage = job.needsReview ? '검토 필요' : '완료'; this.event(job, 'completed', '완료'); if (Settings.get().notify.jobDone) toast(`${job.title}: 완료`); }
+      } catch (e) {
+        if (job.status !== 'cancelled') { job.status = 'failed'; job.error = { code: e.code || 'ERROR', message: e.message, retryable: !!e.retryable }; job.stage = '실패'; this.event(job, 'failed', e.message); toast(`${job.title}: ${e.message}`, 'bad'); console.error(e); }
+      }
+      job.finished_at = Date.now();
+      this.running = false;
+      this.emit();
+      this.pump();
+    },
+    cancel(id) { const j = this.list.find((x) => x.id === id); if (j && ['queued', 'running'].includes(j.status)) { j.status = 'cancelled'; j.stage = '취소됨'; this.event(j, 'cancelled', '사용자가 취소'); } },
+    event(job, type, msg) { job.events.push({ at: Date.now(), type, msg }); this.emit(); },
+    on(fn) { this.subs.add(fn); return () => this.subs.delete(fn); },
+    emit() { for (const f of this.subs) try { f(); } catch (e) { console.error(e); } },
+    get(id) { return this.list.find((j) => j.id === id); },
+  };
+
+  function renderJobs() {
+    const active = Jobs.list.filter((j) => ['queued', 'running'].includes(j.status)).length;
+    $('#jobs-btn').innerHTML = (active ? '<span class="dot"></span>' : '') + icon('queue') + `<span>작업 큐${active ? ' ' + active : ''}</span>`;
+    const b = $('#drawer-b');
+    if (!$('#drawer').classList.contains('open')) return;
+    b.innerHTML = '';
+    if (!Jobs.list.length) { b.append(h('div', { class: 'empty' }, '아직 작업이 없습니다. 시험지 분석·저장에서 파일을 넣고 작업을 시작해 보세요.')); return; }
+    for (const j of Jobs.list) {
+      const st = { queued: ['대기', ''], running: ['진행 중', 'accent'], completed: ['완료', 'ok'], needs_review: ['검토 필요', 'warn'], failed: ['실패', 'bad'], cancelled: ['취소', ''] }[j.status];
+      const ev = h('div', { class: 'job-ev' }, j.events.slice(-40).map((e) => h('div', { class: e.type }, `${new Date(e.at).toLocaleTimeString('ko-KR', { hour12: false })}  ${e.msg}`)));
+      b.append(h('div', { class: 'job' },
+        h('div', { class: 'job-t' }, h('span', null, j.title), h('span', { class: 'chip ' + st[1] }, st[0])),
+        h('div', { class: 'job-s' }, `${KIND_LABEL[j.kind] || j.kind} · ${j.stage} · ${fmtDate(j.created_at)}`),
+        h('div', { class: 'bar-track' }, h('div', { class: 'bar-fill', style: { width: (j.progress || 0) + '%' } })),
+        ev,
+        ['queued', 'running'].includes(j.status) ? h('div', { class: 'row', style: { marginTop: '8px' } }, h('button', { class: 'btn sm', onclick: () => Jobs.cancel(j.id) }, '취소')) : null,
+      ));
+      ev.scrollTop = ev.scrollHeight;
+    }
+  }
+
+  // ---------- Gemini (설정에 키가 있을 때만 사용) ----------
+  async function gemini(parts, { json = true, temperature = 0 } = {}) {
+    const s = Settings.get();
+    if (!s.ai.geminiKey) { const e = new Error('Gemini 키가 없습니다'); e.code = 'NO_KEY'; throw e; }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(s.ai.model)}:generateContent?key=${encodeURIComponent(s.ai.geminiKey)}`;
+    const body = { contents: [{ role: 'user', parts }], generationConfig: { temperature, ...(json ? { responseMimeType: 'application/json' } : {}) } };
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { const e = new Error(data?.error?.message || `Gemini 오류 ${r.status}`); e.code = 'GEMINI_HTTP_' + r.status; throw e; }
+    const blocked = data?.promptFeedback?.blockReason;
+    const cand = data?.candidates?.[0];
+    const finishReason = blocked || cand?.finishReason || 'UNKNOWN';
+    const text = (cand?.content?.parts || []).map((p) => p.text || '').join('');
+    let parsed = null;
+    if (json && text) { try { parsed = JSON.parse(text); } catch { parsed = null; } }
+    return { finishReason, text, json: parsed };
+  }
+  // 응답 분류 (DB 함수 classify_ocr_outcome 과 동일 규칙)
+  function classifyOutcome(finishReason, chars, expected) {
+    const f = String(finishReason || '').toUpperCase();
+    if (f === 'RECITATION') return 'blocked_copyright';
+    if (['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'OTHER'].includes(f)) return 'blocked_safety';
+    if (!chars) return 'error';
+    if (expected > 0 && chars < expected * 0.5) return 'truncated';
+    return 'ok';
+  }
+
+  // ---------- 라우터 ----------
+  const NAV = [
+    { grp: '자료 만들기' },
+    { id: 'annotate', label: '주석 달기', icon: 'note' },
+    { id: 'textbook', label: '주석교재', icon: 'book' },
+    { id: 'build', label: '시험지 제작', icon: 'layers' },
+    { grp: '분석·보관' },
+    { id: 'exam', label: '시험지 분석·저장', icon: 'scan' },
+    { id: 'library', label: '자료함', icon: 'box' },
+    { grp: '디자인' },
+    { id: 'design', label: '디자인 작업대', icon: 'palette' },
+    { id: 'settings', label: '설정', icon: 'gear' },
+  ];
+  const routes = {};
+  let current = null;
+  function route(id, render) { routes[id] = render; }
+  function parseHash() {
+    const raw = location.hash.replace(/^#\/?/, '');
+    const [path, qs] = raw.split('?');
+    return { id: path || 'exam', params: Object.fromEntries(new URLSearchParams(qs || '')) };
+  }
+  function go(id, params) {
+    const qs = params && Object.keys(params).length ? '?' + new URLSearchParams(params) : '';
+    location.hash = '#/' + id + qs;
+  }
+  async function renderRoute() {
+    const { id, params } = parseHash();
+    const r = routes[id] ? id : 'exam';
+    const view = $('#view');
+    if (current?.cleanup) try { current.cleanup(); } catch {}
+    view.innerHTML = '';
+    view.className = 'view';
+    $$('#nav a').forEach((a) => a.classList.toggle('on', a.dataset.id === r));
+    const item = NAV.find((n) => n.id === r);
+    $('#crumb').innerHTML = `국어 스튜디오 / <b>${esc(item?.label || '')}</b>`;
+    current = (await routes[r](view, params)) || null;
+    view.focus({ preventScroll: true });
+  }
+  function buildNav() {
+    const nav = $('#nav');
+    nav.innerHTML = '';
+    for (const n of NAV) {
+      if (n.grp) { nav.append(h('div', { class: 'grp' }, n.grp)); continue; }
+      nav.append(h('a', { href: '#/' + n.id, 'data-id': n.id, 'aria-label': n.label, title: n.label, html: icon(n.icon) + `<span>${esc(n.label)}</span>` }));
+    }
+  }
+
+  // ---------- 작업 요청창 (Ctrl+K) ----------
+  const COMMANDS = [
+    { t: '시험지 분석·저장 열기', k: '시험지 분석 저장 ocr 텍스트화 구조화 업로드 이미지', run: () => go('exam') },
+    { t: '이미지·PDF 텍스트화 (OCR)', k: 'ocr 텍스트화 글자 이미지 사진 pdf', run: () => go('exam', { mode: 'text' }) },
+    { t: '시험지 분석 리포트 만들기', k: '분석 리포트 학부모 동형 경향', run: () => go('exam', { mode: 'analyze' }) },
+    { t: '지문에 주석 달기', k: '주석 행간주 필기 지문', run: () => go('annotate') },
+    { t: '시험지 제작 설계도 만들기', k: '시험지 제작 변형 기출 설계도 연속 출제 유사도', run: () => go('build') },
+    { t: '디자인 작업대에서 배너 바꾸기', k: '디자인 배너 이미지 머리 표지 로고 워터마크', run: () => go('design') },
+    { t: '자료함 열기', k: '자료함 저장 보관 목록', run: () => go('library') },
+    { t: '설정: OCR 대체 순서', k: '설정 ocr 엔진 대체 저작권 차단 순서', run: () => go('settings', { s: 'ocr' }) },
+    { t: '설정: Gemini 키 넣기', k: '설정 gemini 키 ai api', run: () => go('settings', { s: 'ocr' }) },
+    { t: '설정: 학원 브랜드', k: '설정 학원 브랜드 이름 로고 강조색', run: () => go('settings', { s: 'brand' }) },
+    { t: '작업 큐 보기', k: '작업 큐 진행 상태 job', run: () => toggleDrawer(true) },
+    { t: '다크 모드 전환', k: '테마 다크 라이트 화면', run: () => toggleTheme() },
+  ];
+  function planFor(q) {
+    const s = q.replace(/\s+/g, '');
+    const steps = [];
+    if (/ocr|텍스트|사진|이미지|pdf|스캔/i.test(s)) steps.push('시험지 분석·저장 → 텍스트화 모드로 파일 넣기');
+    if (/분석|리포트|경향|동형/.test(s)) steps.push('시험지 분석·저장 → 분석 모드 (구조화 + 경향 리포트)');
+    if (/주석|행간주|필기/.test(s)) steps.push('주석 달기 → 무료 사전 주석 → 필기량 조절');
+    if (/변형|출제|시험지제작|설계도/.test(s)) steps.push('시험지 제작 → 설계도 만들기');
+    if (/배너|디자인|표지|로고/.test(s)) steps.push('디자인 작업대 → 배너 슬롯 교체');
+    return steps;
+  }
+  function openPalette() {
+    if ($('.modal-bg')) return;
+    let sel = 0, items = COMMANDS;
+    const input = h('input', { placeholder: '무엇을 할까요? 예: "사진 시험지 텍스트화", "배너 바꾸기"', 'aria-label': '작업 요청' });
+    const list = h('div', { class: 'list', role: 'listbox' });
+    const plan = h('div', { class: 'plan hidden' });
+    const bg = h('div', { class: 'modal-bg', onclick: (e) => { if (e.target === bg) close(); } }, h('div', { class: 'palette', role: 'dialog', 'aria-label': '작업 요청창' }, input, list, plan));
+    function close() { bg.remove(); }
+    function draw() {
+      const q = input.value.trim().toLowerCase();
+      items = q ? COMMANDS.filter((c) => (c.t + ' ' + c.k).toLowerCase().split(/\s+/).some((w) => q.split(/\s+/).some((x) => w.includes(x) || x.includes(w)))) : COMMANDS;
+      sel = Math.min(sel, Math.max(0, items.length - 1));
+      list.innerHTML = '';
+      items.forEach((c, i) => list.append(h('div', { class: 'it' + (i === sel ? ' on' : ''), role: 'option', onclick: () => { close(); c.run(); } }, c.t, h('small', null, i === sel ? 'Enter' : ''))));
+      if (!items.length) list.append(h('div', { class: 'empty' }, '맞는 명령이 없어요.'));
+      const steps = q ? planFor(q) : [];
+      plan.classList.toggle('hidden', !steps.length);
+      plan.innerHTML = steps.length ? '<b>에이전트 계획 (확인 후 실행)</b><ol>' + steps.map((s) => `<li>${esc(s)}</li>`).join('') + '</ol>' : '';
+    }
+    input.addEventListener('input', () => { sel = 0; draw(); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { sel = Math.min(items.length - 1, sel + 1); draw(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); draw(); e.preventDefault(); }
+      else if (e.key === 'Enter' && items[sel]) { close(); items[sel].run(); }
+      else if (e.key === 'Escape') close();
+    });
+    document.body.append(bg);
+    draw();
+    input.focus();
+  }
+
+  // ---------- 테마 / 서랍 ----------
+  function applyTheme() {
+    const s = Settings.get();
+    document.documentElement.dataset.theme = s.ui.theme;
+    document.documentElement.style.setProperty('--accent', s.brand.accent || '#904ae8');
+    const b = $('#theme-btn');
+    if (b) b.innerHTML = icon(s.ui.theme === 'dark' ? 'sun' : 'moon');
+  }
+  function toggleTheme() { const s = Settings.get(); s.ui.theme = s.ui.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem(Settings.key, JSON.stringify(s)); applyTheme(); }
+  function toggleDrawer(force) { const d = $('#drawer'); d.classList.toggle('open', force ?? !d.classList.contains('open')); renderJobs(); }
+
+  // ---------- 이미지 유틸 ----------
+  function loadImage(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('이미지를 읽을 수 없습니다')); i.src = src; }); }
+  function readAs(file, how) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r[how](file); }); }
+  async function imageStats(src) {
+    const img = await loadImage(src);
+    const c = document.createElement('canvas'); const w = 64, hh = Math.max(1, Math.round(64 * img.height / img.width));
+    c.width = w; c.height = hh;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, hh);
+    const d = g.getImageData(0, 0, w, hh).data;
+    let lum = 0; const buckets = new Map();
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], gg = d[i + 1], b = d[i + 2];
+      lum += (0.2126 * r + 0.7152 * gg + 0.0722 * b) / 255;
+      const key = ((r >> 5) << 6) | ((gg >> 5) << 3) | (b >> 5);
+      const e = buckets.get(key) || { n: 0, r: 0, g: 0, b: 0 }; e.n++; e.r += r; e.g += gg; e.b += b; buckets.set(key, e);
+    }
+    lum /= d.length / 4;
+    const toHex = (v) => Math.round(v).toString(16).padStart(2, '0');
+    const sorted = [...buckets.values()].sort((a, b) => b.n - a.n).map((e) => ({ r: e.r / e.n, g: e.g / e.n, b: e.b / e.n }));
+    const pal = [];
+    for (const c2 of sorted) {
+      const sat = Math.max(c2.r, c2.g, c2.b) - Math.min(c2.r, c2.g, c2.b);
+      if (sat < 40) continue; // 회색 계열 제외
+      if (pal.some((p) => Math.abs(p.r - c2.r) + Math.abs(p.g - c2.g) + Math.abs(p.b - c2.b) < 90)) continue;
+      pal.push(c2); if (pal.length === 3) break;
+    }
+    return { lum, palette: pal.map((p) => '#' + toHex(p.r) + toHex(p.g) + toHex(p.b)), width: img.width, height: img.height };
+  }
+
+  // ---------- 백업·복원 (서버가 붙기 전까지 자료를 잃지 않기 위한 필수 기능) ----------
+  const STORES = ['documents', 'annotations', 'builds', 'assets'];
+  const LS_KEYS = ['ks.settings', 'ks.settings.history', 'ks.design.presets'];
+  const Backup = {
+    lastKey: 'ks.lastBackup',
+    last() { return +localStorage.getItem(this.lastKey) || 0; },
+    async counts() { const o = {}; for (const s of STORES) o[s] = (await DB.all(s)).length; return o; },
+    async export() {
+      const data = { app: 'kor-studio', version: 1, exported_at: new Date().toISOString(), stores: {}, local: {} };
+      for (const s of STORES) data.stores[s] = await DB.all(s);
+      for (const k of LS_KEYS) data.local[k] = localStorage.getItem(k);
+      if (data.local['ks.settings']) { try { const st = JSON.parse(data.local['ks.settings']); if (st.ai) st.ai.geminiKey = ''; data.local['ks.settings'] = JSON.stringify(st); } catch {} }
+      const d = new Date(), p = (n) => String(n).padStart(2, '0');
+      download(`국어스튜디오-백업-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`, JSON.stringify(data), 'application/json');
+      localStorage.setItem(this.lastKey, String(Date.now()));
+      const n = Object.values(data.stores).reduce((a, x) => a + x.length, 0);
+      toast(`백업 파일을 내려받았어요 (자료 ${n}개, API 키는 빼고 저장)`);
+      return n;
+    },
+    async restore(file) {
+      let data;
+      try { data = JSON.parse(await readAs(file, 'readAsText')); } catch { throw new Error('백업 파일을 읽을 수 없어요'); }
+      if (data?.app !== 'kor-studio' || !data.stores) throw new Error('국어 스튜디오 백업 파일이 아니에요');
+      let n = 0;
+      for (const s of STORES) for (const obj of data.stores[s] || []) { if (obj && obj.id) { await DB.put(s, obj); n++; } }
+      for (const k of LS_KEYS) {
+        if (data.local?.[k] == null) continue;
+        if (k === 'ks.settings') { // 지금 쓰는 API 키는 유지
+          try { const cur = Settings.get(); const st = JSON.parse(data.local[k]); st.ai = { ...(st.ai || {}), geminiKey: cur.ai.geminiKey }; localStorage.setItem(k, JSON.stringify(st)); } catch {}
+        } else localStorage.setItem(k, data.local[k]);
+      }
+      applyTheme();
+      return n;
+    },
+    async wipe() { for (const s of STORES) await DB.clear(s); },
+  };
+
+  Object.assign(A, { Backup, $, $$, h, uid, esc, fmtDate, clone, sleep, deepMerge, toast, download, icon, DB, Settings, Jobs, gemini, classifyOutcome, ENGINE_LABEL, OUTCOME_LABEL, route, go, renderRoute, buildNav, openPalette, applyTheme, toggleTheme, toggleDrawer, renderJobs, loadImage, readAs, imageStats, NAV });
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 입력 읽기, 전처리, OCR 엔진과 대체 순서 */
+(function (A) {
+  'use strict';
+  const MAX_DIM = 2400;
+  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const err = (msg, code) => Object.assign(new Error(msg), { code });
+  const textToLines = (text) => text.split(/\r?\n/).map((t) => t.replace(/\s+$/, '')).filter((t) => t.trim()).map((t, i) => ({ line_no: i + 1, text: t, bbox: null, confidence: null, status: 'ok' }));
+
+  async function canvasFrom(src, w, hgt) {
+    const img = await A.loadImage(src);
+    const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round((w || img.width) * scale); c.height = Math.round((hgt || img.height) * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  // ---------- 파일 → 쪽 ----------
+  async function imagePage(blob, fname) {
+    const url = URL.createObjectURL(blob);
+    try {
+      const c = await canvasFrom(url);
+      return { id: A.uid('pg_'), fname, kind: 'image', src: c.toDataURL('image/jpeg', 0.92), width: c.width, height: c.height };
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  async function hwpxPages(file) {
+    if (!window.JSZip) throw err('HWPX 읽기 모듈을 불러오지 못했습니다', 'LIB');
+    const zip = await JSZip.loadAsync(file);
+    const names = Object.keys(zip.files).filter((n) => /^Contents\/section\d+\.xml$/i.test(n)).sort((a, b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
+    if (!names.length) throw err('HWPX 본문(section)을 찾지 못했습니다', 'HWPX_EMPTY');
+    const lines = [];
+    for (const n of names) {
+      const xml = new DOMParser().parseFromString(await zip.file(n).async('string'), 'application/xml');
+      for (const p of xml.getElementsByTagNameNS('*', 'p')) {
+        if (p.parentElement && p.parentElement.localName === 'p') continue;
+        const t = [...p.getElementsByTagNameNS('*', 't')].map((x) => x.textContent).join('');
+        if (t.trim()) lines.push(t);
+      }
+    }
+    return [{ id: A.uid('pg_'), fname: file.name, kind: 'parsed', src: null, lines: textToLines(lines.join('\n')) }];
+  }
+
+  // PDF: 글자 레이어가 있으면 그대로 쓰고(무료), 없으면 그림으로 렌더링해서 OCR 대상
+  async function pdfPages(file, onProgress) {
+    if (!window.pdfjsLib) throw err('PDF 모듈을 불러오지 못했습니다', 'LIB');
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const out = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const vp = page.getViewport({ scale: 2 });
+      const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      const tc = await page.getTextContent();
+      const items = tc.items.filter((it) => it.str && it.str.trim());
+      const chars = items.reduce((s, it) => s + it.str.replace(/\s/g, '').length, 0);
+      const pg = { id: A.uid('pg_'), fname: `${file.name} ${i}쪽`, src: c.toDataURL('image/jpeg', 0.9), width: c.width, height: c.height };
+      if (chars >= 40) { pg.kind = 'pdf_text'; pg.lines = pdfLines(items, vp); }
+      else pg.kind = 'pdf_scan';
+      out.push(pg);
+      onProgress && onProgress(i, pdf.numPages);
+    }
+    return out;
+  }
+  function pdfLines(items, vp) {
+    const boxes = items.map((it) => {
+      const t = pdfjsLib.Util.transform(vp.transform, it.transform);
+      const hgt = Math.hypot(t[2], t[3]);
+      return { str: it.str, x: t[4], y: t[5] - hgt, w: it.width * vp.scale, h: hgt };
+    });
+    const mid = vp.width / 2;
+    const crossing = boxes.filter((b) => b.x < mid - 4 && b.x + b.w > mid + 4).length;
+    const twoCol = crossing / boxes.length < 0.04 && boxes.some((b) => b.x > mid) && boxes.some((b) => b.x + b.w < mid);
+    const groups = [];
+    for (const b of boxes) {
+      const col = twoCol ? (b.x >= mid ? 1 : 0) : 0;
+      const g = groups.find((g) => g.col === col && Math.abs(g.y - b.y) < Math.max(3, b.h * 0.5));
+      if (g) g.items.push(b); else groups.push({ col, y: b.y, items: [b] });
+    }
+    groups.sort((a, b) => a.col - b.col || a.y - b.y);
+    return groups.map((g, i) => {
+      g.items.sort((a, b) => a.x - b.x);
+      let text = '';
+      g.items.forEach((b, k) => { if (k) { const p = g.items[k - 1]; text += b.x - (p.x + p.w) > b.h * 0.25 ? ' ' : ''; } text += b.str; });
+      const x0 = Math.min(...g.items.map((b) => b.x)), y0 = Math.min(...g.items.map((b) => b.y));
+      const x1 = Math.max(...g.items.map((b) => b.x + b.w)), y1 = Math.max(...g.items.map((b) => b.y + b.h));
+      return { line_no: i + 1, text: text.trim(), bbox: [Math.round(x0), Math.round(y0), Math.round(x1 - x0), Math.round(y1 - y0)], confidence: 100, status: 'ok' };
+    }).filter((l) => l.text);
+  }
+
+  async function fileToPages(file, onProgress) {
+    const name = (file.name || 'clipboard.png').toLowerCase();
+    const ext = name.includes('.') ? name.split('.').pop() : '';
+    if (ext === 'txt' || file.type === 'text/plain') return [{ id: A.uid('pg_'), fname: file.name, kind: 'parsed', src: null, lines: textToLines(await A.readAs(file, 'readAsText')) }];
+    if (ext === 'hwpx') return hwpxPages(file);
+    if (ext === 'hwp') throw err('HWP(구버전 바이너리)는 서버 파서 단계에서 지원합니다. 한글에서 HWPX나 PDF로 저장해 올려 주세요.', 'HWP_BINARY');
+    if (ext === 'pdf' || file.type === 'application/pdf') return pdfPages(file, onProgress);
+    if (['heic', 'heif'].includes(ext) || /hei[cf]/.test(file.type)) {
+      if (!window.heic2any) throw err('HEIC 변환 모듈을 불러오지 못했습니다', 'LIB');
+      const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+      return [await imagePage(Array.isArray(out) ? out[0] : out, file.name)];
+    }
+    if ((file.type || '').startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'].includes(ext)) return [await imagePage(file, file.name || '붙여넣은 이미지')];
+    throw err(`지원하지 않는 형식입니다: ${file.name}`, 'UNSUPPORTED');
+  }
+
+  // ---------- 전처리 ----------
+  async function rotate(page, deg) {
+    const img = await A.loadImage(page.src);
+    const rad = deg * Math.PI / 180, s = Math.abs(Math.sin(rad)), co = Math.abs(Math.cos(rad));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * co + img.height * s); c.height = Math.round(img.width * s + img.height * co);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.translate(c.width / 2, c.height / 2); g.rotate(rad); g.drawImage(img, -img.width / 2, -img.height / 2);
+    return { ...page, src: c.toDataURL('image/jpeg', 0.92), width: c.width, height: c.height, lines: page.kind === 'pdf_text' ? null : page.lines, kind: page.kind === 'pdf_text' ? 'pdf_scan' : page.kind };
+  }
+  async function split(page) {
+    const img = await A.loadImage(page.src);
+    const half = Math.floor(img.width / 2);
+    const mk = (x, label) => {
+      const c = document.createElement('canvas'); c.width = half; c.height = img.height;
+      c.getContext('2d').drawImage(img, x, 0, half, img.height, 0, 0, half, img.height);
+      return { id: A.uid('pg_'), fname: `${page.fname} (${label})`, kind: page.kind === 'pdf_text' ? 'pdf_scan' : page.kind, src: c.toDataURL('image/jpeg', 0.92), width: half, height: img.height };
+    };
+    return [mk(0, '왼쪽'), mk(half, '오른쪽')];
+  }
+  // 회색조 + 명암 늘리기 (2%~98% 구간)
+  async function enhance(src) {
+    const c = await canvasFrom(src);
+    const g = c.getContext('2d');
+    const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < d.length; i += 4) { const y = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000 | 0; d[i] = y; hist[y]++; }
+    const total = d.length / 4; let acc = 0, lo = 0, hi = 255;
+    for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > total * 0.02) { lo = v; break; } }
+    acc = 0;
+    for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc > total * 0.02) { hi = v; break; } }
+    const span = Math.max(1, hi - lo);
+    for (let i = 0; i < d.length; i += 4) { const v = Math.max(0, Math.min(255, (d[i] - lo) * 255 / span)); d[i] = d[i + 1] = d[i + 2] = v; }
+    g.putImageData(im, 0, 0);
+    return c.toDataURL('image/jpeg', 0.92);
+  }
+
+  // ---------- 엔진 ----------
+  let worker = null, workerLang = null, logFn = null;
+  async function getWorker(lang, ctx) {
+    if (!window.Tesseract) throw err('OCR 엔진을 불러오지 못했습니다(네트워크 확인)', 'LIB');
+    if (worker && workerLang === lang) return worker;
+    if (worker) { await worker.terminate(); worker = null; }
+    ctx && ctx.log('info', `전용 OCR 언어 데이터 준비 (${lang}) · 처음 한 번만 내려받아요`);
+    worker = await Tesseract.createWorker(lang, 1, { logger: (m) => logFn && logFn(m) });
+    workerLang = lang;
+    return worker;
+  }
+  function tessLines(data, dx, lowConf) {
+    return (data.lines || []).map((l) => ({
+      text: (l.text || '').replace(/\s+$/, '').replace(/\n/g, ''),
+      bbox: [Math.round(l.bbox.x0 + dx), Math.round(l.bbox.y0), Math.round(l.bbox.x1 - l.bbox.x0), Math.round(l.bbox.y1 - l.bbox.y0)],
+      confidence: Math.round(l.confidence),
+    })).filter((l) => l.text.trim()).map((l) => ({ ...l, status: l.confidence < lowConf ? 'low_conf' : 'ok' }));
+  }
+  const judge = (lines) => {
+    const chars = lines.reduce((s, l) => s + l.text.replace(/\s/g, '').length, 0);
+    const mean = lines.length ? lines.reduce((s, l) => s + (l.confidence || 0), 0) / lines.length : 0;
+    return { chars, mean, outcome: chars < 8 ? 'error' : mean < 45 ? 'low_quality' : 'ok' };
+  };
+
+  const Engines = {
+    // 1) Gemini 판독: 키가 있을 때만. 저작권 차단(RECITATION)이면 다음 엔진으로
+    async gemini(page) {
+      const b64 = page.src.split(',')[1];
+      const mime = page.src.slice(5, page.src.indexOf(';'));
+      const prompt = '이 시험지 이미지의 글자를 위에서 아래, 왼쪽 단에서 오른쪽 단 순서로 줄 단위로 옮겨라. 고치거나 요약하지 말 것. JSON {"lines":["…"]} 형식으로만 답하라.';
+      const r = await A.gemini([{ text: prompt }, { inline_data: { mime_type: mime, data: b64 } }]);
+      const arr = Array.isArray(r.json?.lines) ? r.json.lines.map((x) => (typeof x === 'string' ? x : x?.text || '')) : [];
+      const chars = arr.join('').replace(/\s/g, '').length;
+      return { outcome: A.classifyOutcome(r.finishReason, chars, page.expectedChars || 0), finishReason: r.finishReason, lines: arr.filter((t) => t.trim()).map((t) => ({ text: t, bbox: null, confidence: null, status: 'ok' })) };
+    },
+    // 2) 전용 OCR: 줄 단위 글자 + 좌표 + 신뢰도 (시연판은 브라우저 안 Tesseract, 서비스에서는 Upstage/CLOVA로 교체)
+    async dedicated_ocr(page, ctx, s) {
+      const w = await getWorker(s.ocr.lang, ctx);
+      const { data } = await w.recognize(page.src);
+      const lines = tessLines(data, 0, s.ocr.lowConf);
+      return { ...judge(lines), lines };
+    },
+    // 3) 타일 모드: 쪽을 왼쪽·오른쪽 단으로 잘라 따로 인식 (2단 시험지, 긴 출력 차단 대응)
+    async tile_mode(page, ctx, s) {
+      const w = await getWorker(s.ocr.lang, ctx);
+      const img = await A.loadImage(page.src);
+      const half = Math.floor(img.width / 2);
+      let lines = [];
+      for (const x of [0, half]) {
+        const c = document.createElement('canvas'); c.width = half; c.height = img.height;
+        c.getContext('2d').drawImage(img, x, 0, half, img.height, 0, 0, half, img.height);
+        const { data } = await w.recognize(c.toDataURL('image/png'));
+        lines = lines.concat(tessLines(data, x, s.ocr.lowConf));
+      }
+      return { ...judge(lines), lines };
+    },
+    // 4) 수동 확인: 가장 나았던 결과를 '의심'으로 표시해 교정 화면으로 넘김
+    async manual(page) {
+      const best = page.bestLines || [];
+      if (!best.length) return { outcome: 'ok', manual: true, lines: [{ text: '', bbox: null, confidence: 0, status: 'unreadable' }] };
+      return { outcome: 'ok', manual: true, lines: best.map((l) => ({ ...l, status: 'low_conf' })) };
+    },
+  };
+
+  async function prepare(page, s, i) {
+    const p = { page_no: i + 1, fname: page.fname, kind: page.kind, src: page.src, width: page.width, height: page.height, lines: page.lines ? A.clone(page.lines) : null, attempts: [], fallback_path: [] };
+    if (p.src && s.ocr.enhance && (p.kind === 'image' || p.kind === 'pdf_scan')) p.src = await enhance(p.src);
+    return p;
+  }
+
+  // 쪽 하나에 대체 순서 적용 (DB 함수 next_ocr_engine 과 같은 규칙)
+  async function recognizePage(p, ctx, s) {
+    const tag = `${p.page_no}쪽`;
+    if (p.kind === 'pdf_text' || p.kind === 'parsed') {
+      p.text_source = p.kind; p.final_engine = p.kind; p.fallback_path = [p.kind + ':ok'];
+      ctx.log('info', `${tag}: ${A.ENGINE_LABEL[p.kind]} → OCR 없이 바로 사용 (비용 0)`);
+    } else {
+      p.text_source = 'ocr';
+      const chain = s.ocr.chain.filter((e) => !s.ocr.disabled.includes(e)).filter((e) => e !== 'gemini' || s.ai.geminiKey);
+      if (!s.ai.geminiKey && s.ocr.chain.includes('gemini') && !s.ocr.disabled.includes('gemini')) p.fallback_path.push('gemini:skipped');
+      for (const eng of chain) {
+        if (ctx.cancelled()) throw err('취소됨', 'CANCELLED');
+        ctx.log('stage', `${tag}: ${A.ENGINE_LABEL[eng]} 시도`);
+        logFn = (m) => { if (m.status === 'recognizing text') ctx.progress(ctx.job.progress); };
+        const t0 = performance.now();
+        let r;
+        try { r = await Engines[eng](p, ctx, s); } catch (e) { r = { outcome: 'error', error: e.message, lines: [] }; }
+        const ms = Math.round(performance.now() - t0);
+        p.attempts.push({ engine: eng, outcome: r.outcome, finish_reason: r.finishReason || null, chars: r.chars ?? null, mean_conf: r.mean != null ? Math.round(r.mean) : null, duration_ms: ms });
+        p.fallback_path.push(eng + ':' + r.outcome);
+        if (r.lines && r.lines.length && (!p.bestLines || (r.mean || 0) > (p.bestMean || 0))) { p.bestLines = r.lines; p.bestMean = r.mean || 0; }
+        if (r.outcome === 'ok') {
+          p.lines = r.lines; p.final_engine = eng; p.manual = !!r.manual;
+          ctx.log(r.manual ? 'fallback' : 'info', `${tag}: ${A.ENGINE_LABEL[eng]} ${r.manual ? '→ 교정 화면에서 확인 필요' : '완료'} (${(ms / 1000).toFixed(1)}초)`);
+          break;
+        }
+        ctx.log('fallback', `${tag}: ${A.ENGINE_LABEL[eng]} ${A.OUTCOME_LABEL[r.outcome]}${r.error ? ' (' + r.error + ')' : ''}${r.mean != null ? ` · 평균 신뢰도 ${Math.round(r.mean)}` : ''} → 다음 엔진`);
+      }
+      if (!p.lines) { p.lines = [{ text: '', bbox: null, confidence: 0, status: 'unreadable' }]; p.final_engine = 'manual'; }
+      delete p.bestLines; delete p.bestMean;
+    }
+    p.lines = p.lines.map((l, i) => {
+      let status = l.status === 'ok' && l.confidence != null && l.confidence < s.ocr.lowConf ? 'low_conf' : l.status;
+      // 한글 줄에 뜨금없는 영문 조각(예: "Ho]", "AME")이 섞이면 오독 의심
+      const body = (l.text || '').replace(/\[[^\]]*\]/g, '');
+      const hangul = (body.match(/[가-힣]/g) || []).length;
+      if (status === 'ok' && p.text_source === 'ocr' && hangul >= 4 && /[A-Za-z]{2,}|[A-Za-z][\]\}|]/.test(body)) { status = 'low_conf'; l.reason = '한글 사이 영문 조각'; }
+      return { ...l, line_no: i + 1, gid: `P${p.page_no}-L${i + 1}`, status };
+    });
+    const confs = p.lines.map((l) => l.confidence).filter((c) => c != null);
+    p.confidence = confs.length ? Math.round(confs.reduce((a, b) => a + b, 0) / confs.length) : null;
+    p.suspect_count = p.lines.filter((l) => l.status === 'low_conf' || l.status === 'unreadable').length;
+  }
+
+  A.ocr = { fileToPages, rotate, split, enhance, prepare, recognizePage, Engines, textToLines };
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 구조화(참조형 AI / 규칙 기반)와 시험지 분석 */
+(function (A) {
+  'use strict';
+
+  const DOMAIN = { READING: '독서', POETRY: '문학(운문)', NOVEL: '문학(산문)', SPEECH_WRITING: '화법과 작문', GRAMMAR: '문법', MEDIA: '매체', UNKNOWN: '미분류' };
+  const TYPE = { FACT: '내용 일치', INFER: '세부 추론', APPLY: '<보기> 적용', VOCAB: '어휘·문맥적 의미', STRUCT: '서술 방식·전개', EXPR: '표현상 특징', CHAR: '인물·심리·태도', COMPARE: '작품·관점 비교', CRIT: '비판·감상', GRAM: '문법 탐구', MEDIA: '매체 자료', SPEECH: '화법 전략', WRITE: '작문·고쳐쓰기' };
+  const DOMAIN_RULES = [
+    ['GRAMMAR', /(음운|음절|형태소|품사|어근|접사|어간|어미|문장 성분|높임|피동|사동|중세 국어|국어사|안은문장|이어진문장|용언|체언|조사|음운 변동|표준 발음|단어의 짜임)/g, 3],
+    ['MEDIA', /(매체|화면|게시물|누리집|블로그|영상|댓글|카드 뉴스|인터넷 방송|하이퍼링크)/g, 3],
+    ['SPEECH_WRITING', /(발표|토론|대화|강연|협상|면담|초고|고쳐 쓰|글쓰기|작문|청중|발표자|토의|연설)/g, 2],
+    ['POETRY', /(화자|시어|시상|시적|운율|시구|청자|[0-9]연|시의)/g, 3],
+    ['NOVEL', /(서술자|인물|사건|장면|갈등|서사|등장인물|이야기)/g, 2],
+    ['READING', /(윗글|글쓴이|견해|이론|개념|원리|입장|학자|과정|원인|정보)/g, 1],
+  ];
+  const TYPE_RULES = [
+    ['VOCAB', /(문맥적 의미|사전적 의미|바꿔 쓰|바꾸어 쓰|의미로 적절|ⓐ\s*~\s*ⓔ)/],
+    ['GRAM', /(음운|형태소|품사|문장 성분|높임|피동|사동|중세 국어|어미|조사|단어의 짜임)/],
+    ['MEDIA', /(매체|화면|게시물|영상|누리집)/],
+    ['SPEECH', /(발표|말하기|강연|토론|대화|면담|협상)/],
+    ['WRITE', /(초고|고쳐 쓰|글쓰기|작문|자료 활용|조건에 따라)/],
+    ['COMPARE', /(\(가\)\s*와\s*\(나\)|\(가\)\s*~\s*\(다\)|공통점|차이점|비교)/],
+    ['EXPR', /(표현상|표현 방식|표현 효과|표현한)/],
+    ['STRUCT', /(서술상|서술 방식|전개 방식|글의 구조|서술 특징|짜임)/],
+    ['CHAR', /(인물|심리|태도|정서|화자)/],
+    ['CRIT', /(비판|반응|감상|평가)/],
+    ['INFER', /(추론|짐작|예측|이유|까닭)/],
+    ['FACT', /(일치|알 수 있는|이해한 내용|이해로|설명으로|내용으로)/],
+  ];
+  const NEG = /(적절하지\s*않은|않(?:은|는)\s*것은|옳지\s*않은|틀린\s*것|거리가\s*먼)/;
+  // OCR이 ①~⑤를 잘못 읽은 표식 (@, @), ®, ©, 6), (1), 1) 등). 문항 안에서는 나오는 순서대로 선지 번호를 매김
+  const reOcrMark = /^\s*(?:[@®©◎○⓪⑥](?:\)|\s)|[@®©]$|\(?[1-6]\)\s|[①-⑤]\s?)/;
+  const CH = ['①', '②', '③', '④', '⑤'];
+  const reSet = /^\s*[\[［]\s*(\d{1,2})\s*[~∼～\-–]\s*(\d{1,2})\s*[\]］]/;
+  const reQ = /^\s*(\d{1,2})\s*[.．]\s*(\S.*)$/;
+  const reBoogi = /[<〈＜《\[]\s*보\s*기\s*[>〉＞》\]]/;
+
+  function flatLines(doc) {
+    const out = [];
+    for (const p of doc.pages) for (const l of p.lines || []) out.push({ gid: l.gid, page: p.page_no, text: l.text || '', status: l.status });
+    return out;
+  }
+
+  // ---------- 규칙 기반 구조화 ----------
+  function ruleStructure(lines) {
+    const sets = [], items = [], preamble = [];
+    let set = null, cur = null, part = null;
+    const lastNo = () => (items.length ? items[items.length - 1].number : null);
+    for (const L of lines) {
+      const t = L.text.trim();
+      if (!t) continue;
+      const ms = t.match(reSet);
+      if (ms) { set = { from: +ms[1], to: +ms[2], header: t, refs: [L.gid], passage: '', passage_refs: [] }; sets.push(set); cur = null; part = 'passage'; continue; }
+      const mq = t.match(reQ);
+      if (mq) {
+        const n = +mq[1], prev = lastNo();
+        const seqOk = prev == null ? n <= 45 : n > prev && n - prev <= 3;
+        if (seqOk && !CH.some((c) => mq[2].startsWith(c))) {
+          cur = { number: n, set: set ? sets.indexOf(set) : null, stem: mq[2], stem_refs: [L.gid], boogi: '', boogi_refs: [], choices: {}, choice_refs: {}, seq_ok: prev == null || n === prev + 1 };
+          items.push(cur); part = 'stem';
+          continue;
+        }
+      }
+      const marks = CH.map((c, i) => ({ i: i + 1, at: t.indexOf(c) })).filter((m) => m.at >= 0).sort((a, b) => a.at - b.at);
+      const digitMark = /^\s*\(?[1-6]\)\s/.test(t);
+      if (cur && marks.length <= 1 && part !== 'passage' && reOcrMark.test(t) && !(digitMark && part === 'boogi')) {
+        const k = Object.keys(cur.choices).length + 1;
+        if (k <= 5) {
+          part = 'choices';
+          cur.choices[k] = t.replace(reOcrMark, '').trim();
+          cur.choice_refs[k] = [L.gid];
+          cur.ocr_marks = true;
+          continue;
+        }
+      }
+      if (cur && marks.length) {
+        part = 'choices';
+        marks.forEach((m, k) => {
+          const seg = t.slice(m.at + 1, k + 1 < marks.length ? marks[k + 1].at : undefined).trim();
+          cur.choices[m.i] = ((cur.choices[m.i] || '') + ' ' + seg).trim();
+          (cur.choice_refs[m.i] = cur.choice_refs[m.i] || []).push(L.gid);
+        });
+        const pre = t.slice(0, marks[0].at).trim();
+        if (pre && marks[0].i === 1) { cur.stem += ' ' + pre; cur.stem_refs.push(L.gid); }
+        continue;
+      }
+      const bm = t.match(reBoogi);
+      const boogiStart = bm && (t.length - bm[0].length <= 2 || (bm.index === 0 && !/^[를을에의와는가]/.test(t.slice(bm[0].length).trim())));
+      if (cur && boogiStart) { part = 'boogi'; const rest = t.replace(reBoogi, '').trim(); if (rest) cur.boogi += (cur.boogi ? '\n' : '') + rest; cur.boogi_refs.push(L.gid); continue; }
+      if (cur && part === 'stem') { cur.stem += ' ' + t; cur.stem_refs.push(L.gid); continue; }
+      if (cur && part === 'boogi') { cur.boogi += (cur.boogi ? '\n' : '') + t; cur.boogi_refs.push(L.gid); continue; }
+      if (cur && part === 'choices') {
+        const filled = Object.keys(cur.choices).length;
+        if (filled < 5) { const k = Math.max(...Object.keys(cur.choices).map(Number)); cur.choices[k] += ' ' + t; cur.choice_refs[k].push(L.gid); continue; }
+        // 선지 5개를 다 채운 뒤 나오는 글 = 다음 지문 (머리말 없는 지문)
+        set = { from: null, to: null, header: '', refs: [], passage: t, passage_refs: [L.gid], implicit: true }; sets.push(set); cur = null; part = 'passage'; continue;
+      }
+      if (set && part === 'passage') { set.passage += (set.passage ? '\n' : '') + t; set.passage_refs.push(L.gid); continue; }
+      preamble.push(t);
+    }
+    return { sets, items, preamble };
+  }
+
+  // ---------- 분류 ----------
+  function classifyDomain(text) {
+    let best = 'READING', bestScore = 0;
+    for (const [d, re, w] of DOMAIN_RULES) { const n = (text.match(re) || []).length * w; if (n > bestScore) { best = d; bestScore = n; } }
+    return best;
+  }
+  function classifyType(item, domain) {
+    const s = item.stem || '';
+    if (/(문맥적 의미|사전적 의미|바꿔 쓰|바꾸어 쓰)/.test(s)) return 'VOCAB';
+    if (domain === 'GRAMMAR') return 'GRAM';
+    if (item.boogi || reBoogi.test(s)) return 'APPLY';
+    for (const [t, re] of TYPE_RULES) if (re.test(s)) return t;
+    return 'FACT';
+  }
+  function enrich(st, lines) {
+    const low = new Set(lines.filter((l) => l.status === 'low_conf' || l.status === 'unreadable').map((l) => l.gid));
+    // 같은 지문을 쓰는 문항은 같은 영역: 지문 + 모든 발문을 합쳐 한 번에 판단
+    st.sets.forEach((s, si) => {
+      const its = st.items.filter((i) => i.set === si);
+      s.domain = classifyDomain(`${its.map((i) => i.stem + ' ' + i.stem + ' ' + i.boogi).join(' ')} ${(s.header || '')} ${s.passage.slice(0, 600)}`);
+      if (/다음\s*시/.test(s.header || '')) s.domain = 'POETRY';
+      if (/다음\s*(글|소설)/.test(s.header || '') && /(서술자|인물|사건)/.test(its.map((i) => i.stem).join(' '))) s.domain = 'NOVEL';
+    });
+    for (const it of st.items) {
+      const ctxText = `${it.stem} ${it.stem} ${it.boogi} ${it.set != null ? (st.sets[it.set]?.passage || '').slice(0, 500) : ''}`;
+      it.domain = it.domain || (it.set != null && st.sets[it.set]?.domain) || classifyDomain(ctxText);
+      it.item_type = it.item_type || classifyType(it, it.domain);
+      it.negative = NEG.test(it.stem);
+      const nCh = Object.keys(it.choices).length;
+      const refs = [...it.stem_refs, ...it.boogi_refs, ...Object.values(it.choice_refs).flat()];
+      const lowHit = refs.some((g) => low.has(g));
+      it.confidence = +(0.35 * (it.stem.length >= 8 ? 1 : 0) + 0.4 * Math.min(nCh, 5) / 5 + 0.15 * (it.seq_ok === false ? 0 : 1) + 0.1 * (lowHit ? 0 : 1)).toFixed(2);
+      it.needs_review = it.confidence < 0.65;
+      it.teacher_confirmed = it.teacher_confirmed || false;
+      it.choice_avg_len = nCh ? Math.round(Object.values(it.choices).reduce((a, c) => a + c.length, 0) / nCh) : 0;
+    }
+    return st;
+  }
+
+  // ---------- 참조형 구조화 (AI는 줄 ID만 답함 → 원문 재출력 없음) ----------
+  async function referenceStructure(lines) {
+    const listing = lines.slice(0, 1500).map((l) => `${l.gid}: ${l.text}`).join('\n');
+    const prompt = `다음은 OCR로 읽은 국어 시험지의 줄 목록이다. 각 줄 앞에 줄 ID가 있다.
+시험지 구조를 줄 ID로만 답하라. 원문 글자를 다시 쓰지 마라.
+JSON 형식: {"sets":[{"from":18,"to":21,"header_ref":"P1-L3","passage_refs":["P1-L4"]}],
+"items":[{"number":18,"stem_refs":["P1-L20"],"boogi_refs":[],"choice_refs":{"1":["P1-L22"],"2":[],"3":[],"4":[],"5":[]},
+"domain":"READING|POETRY|NOVEL|SPEECH_WRITING|GRAMMAR|MEDIA","item_type":"FACT|INFER|APPLY|VOCAB|STRUCT|EXPR|CHAR|COMPARE|CRIT|GRAM|MEDIA|SPEECH|WRITE"}]}
+줄 목록:
+${listing}`;
+    const r = await A.gemini([{ text: prompt }]);
+    const j = r.json;
+    if (A.classifyOutcome(r.finishReason, (r.text || '').length, 0) !== 'ok' || !j || !Array.isArray(j.items) || !j.items.length) {
+      const e = new Error(`참조형 구조화 실패 (${r.finishReason}${j ? '' : ', JSON 아님'})`); e.code = 'REFERENCE_FAILED'; throw e;
+    }
+    const byId = new Map(lines.map((l) => [l.gid, l.text]));
+    const txt = (refs) => (refs || []).map((g) => byId.get(g) || '').join(' ').replace(/\s+/g, ' ').trim();
+    const strip = (s) => s.replace(/^\s*\d{1,2}\s*[.．]\s*/, '').replace(/^[①②③④⑤]\s*/, '').replace(reBoogi, '').trim();
+    const sets = (j.sets || []).map((s) => ({ from: s.from, to: s.to, header: byId.get(s.header_ref) || '', refs: s.header_ref ? [s.header_ref] : [], passage: (s.passage_refs || []).map((g) => byId.get(g) || '').join('\n'), passage_refs: s.passage_refs || [] }));
+    const items = j.items.map((it) => {
+      const choices = {}, choice_refs = {};
+      for (const k of ['1', '2', '3', '4', '5']) { const refs = it.choice_refs?.[k] || []; if (refs.length) { choices[k] = strip(txt(refs)); choice_refs[k] = refs; } }
+      const set = sets.findIndex((s) => s.from != null && it.number >= s.from && it.number <= s.to);
+      return { number: it.number, set: set >= 0 ? set : null, stem: strip(txt(it.stem_refs)), stem_refs: it.stem_refs || [], boogi: strip(txt(it.boogi_refs)), boogi_refs: it.boogi_refs || [], choices, choice_refs, domain: DOMAIN[it.domain] ? it.domain : null, item_type: TYPE[it.item_type] ? it.item_type : null, seq_ok: true };
+    });
+    return { sets, items, preamble: [] };
+  }
+
+  async function run(doc, ctx, s) {
+    const lines = flatLines(doc);
+    const chain = s.structure || s.ocr.structure;
+    for (const eng of chain) {
+      if (eng === 'reference_mode') {
+        if (!s.ai.geminiKey) { ctx.log('info', '구조화: 참조형(AI)은 Gemini 키가 없어 건너뜀 → 규칙 기반'); continue; }
+        try { ctx.log('stage', '구조화: 참조형(AI, 줄 ID만 응답) 시도'); const st = enrich(await referenceStructure(lines), lines); st.engine = 'reference_mode'; ctx.log('info', `구조화 완료: ${st.items.length}문항 (참조형)`); return st; }
+        catch (e) { ctx.log('fallback', `구조화: ${e.message} → 규칙 기반으로 전환`); }
+      }
+      if (eng === 'rule_based') { const st = enrich(ruleStructure(lines), lines); st.engine = 'rule_based'; ctx.log('info', `구조화 완료: ${st.items.length}문항 (규칙 기반)`); return st; }
+    }
+    const st = enrich(ruleStructure(lines), lines); st.engine = 'rule_based'; return st;
+  }
+  function rebuild(doc) { const lines = flatLines(doc); const st = enrich(ruleStructure(lines), lines); st.engine = 'rule_based'; return st; }
+
+  // ---------- 분석 리포트 ----------
+  function analyze(doc) {
+    const items = doc.structure?.items || [];
+    const n = items.length;
+    const count = (f) => items.filter(f).length;
+    const dist = (key, names) => {
+      const m = {}; for (const it of items) m[it[key]] = (m[it[key]] || 0) + 1;
+      return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ key: k, label: names[k] || k, n: v, pct: n ? Math.round(v * 100 / n) : 0 }));
+    };
+    const domains = dist('domain', DOMAIN), types = dist('item_type', TYPE);
+    const neg = count((i) => i.negative), boogi = count((i) => i.item_type === 'APPLY'), review = count((i) => i.needs_review && !i.teacher_confirmed);
+    const top = domains[0];
+    const tips = {
+      READING: '독서는 문단별 핵심 정보 정리와 선지-지문 대조 훈련이 우선입니다.',
+      POETRY: '운문은 화자의 정서·태도와 표현법 개념어를 정확히 연결하는 연습이 필요합니다.',
+      NOVEL: '산문은 인물 관계와 사건 흐름을 요약하고, 서술상 특징 선지를 판단하는 연습이 필요합니다.',
+      GRAMMAR: '문법은 개념 정리 후 자료 적용 문제를 반복해야 합니다.',
+      SPEECH_WRITING: '화법과 작문은 말하기 전략·글쓰기 계획을 자료와 대조하는 유형이 중심입니다.',
+      MEDIA: '매체는 자료의 표현 방식과 수용자 고려 요소를 묻는 문항이 중심입니다.',
+    };
+    const summary = n ? [
+      `이번 시험지는 총 ${n}문항으로 분석되었습니다. 가장 비중이 큰 영역은 ${top.label}(${top.n}문항, ${top.pct}%)입니다.`,
+      `'적절하지 않은 것'을 고르는 부정 발문이 ${neg}문항(${Math.round(neg * 100 / n)}%)으로, 선지 하나하나를 근거와 대조하는 습관이 점수를 좌우합니다.`,
+      boogi ? `<보기>를 적용하는 문항이 ${boogi}문항 있어, 외부 자료를 지문에 대입하는 연습이 필요합니다.` : '<보기> 적용 문항은 거의 없었습니다.',
+      ...domains.slice(0, 3).map((d) => tips[d.key]).filter(Boolean),
+    ] : ['문항을 찾지 못했습니다. 교정 화면에서 문항 번호(예: "12.")와 선지 기호(①~⑤)가 제대로 읽혔는지 확인해 주세요.'];
+    return { n, domains, types, neg, boogi, review, summary, created_at: Date.now() };
+  }
+
+  A.structure = { run, rebuild, analyze, ruleStructure, DOMAIN, TYPE, CH };
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 시험지 분석·저장 (요청 5 + 7) */
+(function (A) {
+  'use strict';
+  const { h, esc, icon } = A;
+  const MODES = [
+    { id: 'text', name: '텍스트화', desc: '글자만 읽어 교정하고 TXT로 받기' },
+    { id: 'structure', name: '구조화', desc: '글자를 문항·<보기>·선지로 나누기' },
+    { id: 'analyze', name: '분석', desc: '구조화에 더해 출제 경향 리포트까지' },
+  ];
+  const ROLES = ['시험지', '학교프린트', '교사용교과서', '자습서', '평가문제집', '기출', '수업필기', '기타'];
+  const KIND_LABEL = { image: '이미지', pdf_text: 'PDF 글자', pdf_scan: 'PDF 스캔', parsed: '텍스트' };
+  const S = A.examState = A.examState || { mode: 'analyze', title: '', role: '시험지', pages: [], doc: null, tab: 'fix', curPage: 1, onlySuspect: false, jobId: null };
+
+  A.route('exam', async (view, params) => {
+    if (params.mode && MODES.some((m) => m.id === params.mode)) S.mode = params.mode;
+    if (params.doc) {
+      const d = await A.DB.get('documents', params.doc);
+      if (d) { S.doc = d; S.mode = d.mode; S.title = d.title; S.role = d.role; S.tab = 'fix'; S.curPage = 1; }
+    }
+    const root = h('div');
+    view.append(root);
+    const unsub = A.Jobs.on(() => {
+      const j = S.jobId && A.Jobs.get(S.jobId);
+      if (!j) return;
+      const bar = root.querySelector('#run-progress');
+      if (bar) { bar.querySelector('.bar-fill').style.width = j.progress + '%'; bar.querySelector('.st').textContent = j.stage; }
+      if (['completed', 'needs_review'].includes(j.status) && j.result && S.doc !== j.result) { S.doc = j.result; S.tab = S.doc.mode === 'analyze' ? 'report' : S.doc.mode === 'structure' ? 'items' : 'fix'; S.curPage = 1; S.jobId = null; draw(); }
+      if (['failed', 'cancelled'].includes(j.status)) { S.jobId = null; draw(); }
+    });
+    const onPaste = (e) => {
+      const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
+      if (files.length) { e.preventDefault(); addFiles(files); }
+    };
+    document.addEventListener('paste', onPaste);
+
+    function draw() {
+      root.innerHTML = '';
+      root.append(
+        h('div', { class: 'page-head' },
+          h('div', null, h('h1', null, '시험지 분석·저장'), h('p', null, '시험지 사진·PDF·한글 파일을 읽어 글자로 바꾸고, 문항으로 나눠 출제 경향을 분석합니다.')),
+          h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => A.go('library') }, '자료함'))),
+        h('div', { class: 'stack' }, inputCard(), S.pages.length ? pagesCard() : emptyPagesCard(), runCard(), S.doc ? resultCard() : null));
+    }
+
+    // ---------- 1. 파일 넣기 ----------
+    function inputCard() {
+      const fileIn = h('input', { type: 'file', multiple: true, class: 'hidden', accept: '.pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.txt,.hwpx,.hwp,image/*', onchange: (e) => { addFiles([...e.target.files]); e.target.value = ''; } });
+      const camIn = h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'hidden', onchange: (e) => { addFiles([...e.target.files]); e.target.value = ''; } });
+      const drop = h('div', { class: 'drop', id: 'dropzone' },
+        h('div', { html: icon('upload'), style: { width: '28px', height: '28px', margin: '0 auto 6px', color: 'var(--muted)' } }),
+        h('b', null, '시험지 파일이나 사진을 끌어다 놓으세요'),
+        h('p', null, 'PDF · 이미지(PNG, JPG, WebP, HEIC) · HWPX · TXT · 여러 장 한 번에 · Ctrl+V로 캡처 붙여넣기'),
+        h('div', { class: 'row', style: { justifyContent: 'center' } },
+          h('button', { class: 'btn primary', onclick: () => fileIn.click() }, '파일 선택'),
+          h('button', { class: 'btn', onclick: () => camIn.click(), html: icon('camera') + '카메라로 찍기' })),
+        fileIn, camIn);
+      drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+      drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+      drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); addFiles([...e.dataTransfer.files]); });
+      return h('div', { class: 'card' },
+        h('div', { class: 'card-h' }, h('h3', null, '1  모드와 파일'), h('span', { class: 'sub' }, '모드는 실행 전에 언제든 바꿀 수 있어요')),
+        h('div', { class: 'card-b stack' },
+          h('div', { class: 'modes', role: 'radiogroup', 'aria-label': '처리 모드' }, MODES.map((m) => h('button', { class: 'mode' + (S.mode === m.id ? ' on' : ''), role: 'radio', 'aria-checked': String(S.mode === m.id), onclick: () => { S.mode = m.id; draw(); } }, h('b', null, m.name), h('span', null, m.desc)))),
+          h('div', { class: 'grid2' },
+            h('div', { class: 'field' }, h('label', null, '제목'), h('input', { class: 'input', placeholder: '예: 26-1-1 중간 원주고 2학년', value: S.title, oninput: (e) => (S.title = e.target.value) })),
+            h('div', { class: 'field' }, h('label', null, '자료 역할'), h('select', { class: 'input', onchange: (e) => (S.role = e.target.value) }, ROLES.map((r) => h('option', { value: r, selected: S.role === r }, r))))),
+          drop));
+    }
+
+    async function addFiles(files) {
+      if (!files.length) return;
+      for (const f of files) {
+        try {
+          A.toast(`${f.name || '이미지'} 읽는 중…`);
+          const pages = await A.ocr.fileToPages(f);
+          S.pages.push(...pages);
+          if (!S.title) S.title = (f.name || '').replace(/\.[^.]+$/, '');
+        } catch (e) { A.toast(e.message, 'bad'); }
+      }
+      draw();
+    }
+
+    function emptyPagesCard() {
+      return h('div', { class: 'card', style: { opacity: 0.6 } },
+        h('div', { class: 'card-h' }, h('h3', null, '2  쪽 정리'), h('span', { class: 'sub' }, '파일을 넣으면 여기에 쪽이 놓여요')),
+        h('div', { class: 'card-b small muted' }, '쪽 순서 바꾸기, 돌리기, 펼친 면 두 쪽으로 나누기를 여기서 합니다.'));
+    }
+
+    // ---------- 2. 쪽 정리 ----------
+    function pagesCard() {
+      const strip = h('div', { class: 'pages' });
+      let dragIdx = null;
+      S.pages.forEach((p, i) => {
+        const th = h('div', { class: 'th', draggable: 'true', style: p.src ? { backgroundImage: `url(${p.src})` } : null }, h('span', { class: 'no' }, i + 1), p.src ? null : h('span', null, `텍스트 ${p.lines?.length || 0}줄`));
+        const card = h('div', { class: 'pg' }, th,
+          h('div', { class: 'meta' }, h('span', { title: p.fname }, (p.fname || '').slice(0, 14)), h('span', { class: 'chip' + (p.kind === 'pdf_text' || p.kind === 'parsed' ? ' ok' : '') }, KIND_LABEL[p.kind])),
+          h('div', { class: 'tools' },
+            h('button', { title: '오른쪽으로 90° 회전', 'aria-label': `${i + 1}쪽 회전`, disabled: !p.src, onclick: async () => { S.pages[i] = await A.ocr.rotate(p, 90); draw(); } }, '회전'),
+            h('button', { title: '펼친 면(B4 2쪽)을 두 쪽으로', 'aria-label': `${i + 1}쪽 2분할`, disabled: !p.src, onclick: async () => { S.pages.splice(i, 1, ...(await A.ocr.split(p))); draw(); } }, '2분할'),
+            h('button', { title: '삭제', 'aria-label': `${i + 1}쪽 삭제`, onclick: () => { S.pages.splice(i, 1); draw(); } }, '삭제')));
+        th.addEventListener('dragstart', () => { dragIdx = i; card.classList.add('dragging'); });
+        th.addEventListener('dragend', () => card.classList.remove('dragging'));
+        card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('over'); });
+        card.addEventListener('dragleave', () => card.classList.remove('over'));
+        card.addEventListener('drop', (e) => { e.preventDefault(); card.classList.remove('over'); if (dragIdx == null || dragIdx === i) return; const [m] = S.pages.splice(dragIdx, 1); S.pages.splice(i, 0, m); dragIdx = null; draw(); });
+        strip.append(card);
+      });
+      const free = S.pages.filter((p) => p.kind === 'pdf_text' || p.kind === 'parsed').length;
+      return h('div', { class: 'card' },
+        h('div', { class: 'card-h' }, h('h3', null, `2  쪽 정리 · ${S.pages.length}쪽`), h('div', { class: 'row' }, h('span', { class: 'sub' }, '끌어서 순서 변경 · 사진은 자동 보정'), h('button', { class: 'btn sm ghost danger', onclick: () => { S.pages = []; draw(); } }, '모두 비우기'))),
+        h('div', { class: 'card-b' }, strip,
+          h('div', { class: 'small muted' }, `OCR 필요 ${S.pages.length - free}쪽 · 글자를 바로 읽는 쪽 ${free}쪽(비용 0)`)));
+    }
+
+    // ---------- 3. 실행 ----------
+    function runCard() {
+      const s = A.Settings.get();
+      const chain = s.ocr.chain.filter((e) => !s.ocr.disabled.includes(e));
+      const chainEl = h('div', { class: 'chain' }, h('span', { class: 'chip ok' }, 'PDF 글자·HWPX 직접 읽기'), h('span', { class: 'arr' }, '→'),
+        chain.map((e, i) => [i ? h('span', { class: 'arr' }, '→') : null, h('span', { class: 'chip' + (e === 'gemini' && !s.ai.geminiKey ? '' : ' accent'), title: e === 'gemini' && !s.ai.geminiKey ? 'Gemini 키가 없어 건너뜀' : '' }, A.ENGINE_LABEL[e] + (e === 'gemini' && !s.ai.geminiKey ? ' (키 없음)' : ''))]));
+      const j = S.jobId && A.Jobs.get(S.jobId);
+      return h('div', { class: 'card' },
+        h('div', { class: 'card-h' }, h('h3', null, '3  실행'), h('a', { href: '#/settings?s=ocr', class: 'small' }, '대체 순서 바꾸기')),
+        h('div', { class: 'card-b stack' },
+          h('div', null, h('div', { class: 'lbl', style: { marginBottom: '6px' } }, '쪽마다 차단·잘림·품질 낮음이면 다음 엔진으로 자동 전환'), chainEl),
+          h('div', { class: 'row' },
+            h('label', { class: 'row small' }, h('span', { class: 'switch' }, h('input', { type: 'checkbox', checked: s.ocr.enhance, onchange: (e) => { const ns = A.Settings.get(); ns.ocr.enhance = e.target.checked; A.Settings.save(ns); } }), h('span')), '사진 자동 보정(회색조·명암)'),
+            h('span', { class: 'spacer' }),
+            j ? h('div', { id: 'run-progress', style: { width: '260px' } }, h('div', { class: 'small st', style: { marginBottom: '4px' } }, j.stage), h('div', { class: 'bar-track' }, h('div', { class: 'bar-fill', style: { width: j.progress + '%' } }))) : null,
+            j ? h('button', { class: 'btn', onclick: () => A.toggleDrawer(true) }, '진행 기록') : null,
+            h('button', { class: 'btn primary', disabled: !S.pages.length || !!j, onclick: start, 'aria-label': '작업 시작' }, j ? '처리 중…' : `${MODES.find((m) => m.id === S.mode).name} 시작`))));
+    }
+
+    function start() {
+      const s = A.Settings.get();
+      const title = S.title || '제목 없는 시험지';
+      const pages = S.pages.slice();
+      const mode = S.mode, role = S.role;
+      const kind = { text: 'ocr', structure: 'structure', analyze: 'analyze' }[mode];
+      const job = A.Jobs.create(kind, title, { mode, pages: pages.length, role }, async (ctx) => {
+        const doc = { id: A.uid('doc_'), title, role, mode, created_at: Date.now(), pages: [], engine_summary: {} };
+        ctx.stage('전처리', 2);
+        for (let i = 0; i < pages.length; i++) doc.pages.push(await A.ocr.prepare(pages[i], s, i));
+        ctx.stage('글자 읽기', 5);
+        for (let i = 0; i < doc.pages.length; i++) {
+          await A.ocr.recognizePage(doc.pages[i], ctx, s);
+          ctx.progress(5 + 75 * (i + 1) / doc.pages.length);
+        }
+        for (const p of doc.pages) doc.engine_summary[p.final_engine] = (doc.engine_summary[p.final_engine] || 0) + 1;
+        if (mode !== 'text') { ctx.stage('구조화', 82); doc.structure = await A.structure.run(doc, ctx, s); }
+        if (mode === 'analyze') { ctx.stage('분석 리포트', 94); doc.analysis = A.structure.analyze(doc); }
+        const suspect = doc.pages.reduce((a, p) => a + p.suspect_count, 0);
+        const review = doc.structure ? doc.structure.items.filter((i) => i.needs_review).length : 0;
+        if (suspect || review) { ctx.job.needsReview = true; ctx.log('info', `검토 필요: 의심 줄 ${suspect}개 · 검수 필요 문항 ${review}개`); }
+        return doc;
+      });
+      S.jobId = job.id;
+      draw();
+    }
+
+    // ---------- 결과 ----------
+    function resultCard() {
+      const d = S.doc;
+      const tabs = [['fix', '교정'], ...(d.structure ? [['items', `구조 · ${d.structure.items.length}문항`]] : []), ...(d.analysis ? [['report', '분석 리포트']] : []), ['log', '처리 기록']];
+      if (!tabs.some((t) => t[0] === S.tab)) S.tab = tabs[0][0];
+      const suspect = d.pages.reduce((a, p) => a + (p.suspect_count || 0), 0);
+      const body = h('div');
+      const card = h('div', { class: 'card' },
+        h('div', { class: 'card-h' },
+          h('div', null, h('h3', null, d.title), h('div', { class: 'sub' }, `${MODES.find((m) => m.id === d.mode).name} · ${d.pages.length}쪽 · 의심 줄 ${suspect}개${d.saved_at ? ' · 자료함 저장됨' : ''}`)),
+          h('div', { class: 'row' },
+            d.mode !== 'text' ? h('button', { class: 'btn sm', onclick: () => { d.structure = A.structure.rebuild(d); if (d.mode === 'analyze') d.analysis = A.structure.analyze(d); A.toast('교정한 글자로 구조를 다시 만들었어요'); draw(); } }, '구조 다시 만들기') : null,
+            h('button', { class: 'btn sm', onclick: () => exportTxt(d) }, 'TXT'),
+            h('button', { class: 'btn sm', onclick: () => exportJson(d) }, 'JSON'),
+            h('button', { class: 'btn sm primary', onclick: async () => { d.saved_at = Date.now(); await A.DB.put('documents', d); A.toast('자료함에 저장했어요 (기간 제한 없음)'); draw(); } }, d.saved_at ? '다시 저장' : '자료함에 저장'))),
+        h('div', { class: 'res-tabs', role: 'tablist' }, tabs.map(([id, label]) => h('button', { class: S.tab === id ? 'on' : '', role: 'tab', 'aria-selected': String(S.tab === id), onclick: () => { S.tab = id; draw(); } }, label))),
+        body);
+      if (S.tab === 'fix') body.append(editor(d));
+      if (S.tab === 'items') body.append(itemsView(d));
+      if (S.tab === 'report') body.append(reportView(d));
+      if (S.tab === 'log') body.append(logView(d));
+      return card;
+    }
+
+    function editor(d) {
+      const p = d.pages[Math.min(S.curPage, d.pages.length) - 1];
+      const paneW = Math.max(320, ((document.querySelector('#view')?.clientWidth || 1200) - 120) / 2);
+      const zoom = p.src ? Math.min(1, (paneW - 24) / p.width) : 1;
+      const wrap = h('div', { class: 'wrap' });
+      const svgNS = 'http://www.w3.org/2000/svg';
+      let svg = null;
+      if (p.src) {
+        wrap.append(h('img', { src: p.src, width: Math.round(p.width * zoom), height: Math.round(p.height * zoom), alt: `${p.page_no}쪽 원본` }));
+        svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('viewBox', `0 0 ${p.width} ${p.height}`); svg.setAttribute('width', Math.round(p.width * zoom)); svg.setAttribute('height', Math.round(p.height * zoom));
+        p.lines.forEach((l, i) => {
+          if (!l.bbox) return;
+          const r = document.createElementNS(svgNS, 'rect');
+          r.setAttribute('x', l.bbox[0]); r.setAttribute('y', l.bbox[1]); r.setAttribute('width', l.bbox[2]); r.setAttribute('height', l.bbox[3]); r.setAttribute('rx', 4);
+          r.dataset.i = i;
+          if (l.status === 'low_conf' || l.status === 'unreadable') r.classList.add('low');
+          r.addEventListener('click', () => focusLine(i));
+          svg.append(r);
+        });
+        wrap.append(svg);
+      } else wrap.append(h('div', { class: 'noimg' }, '이 쪽은 파일에서 글자를 바로 읽어 원본 이미지가 없어요.'));
+      const imgPane = h('div', { class: 'ed-img' }, wrap);
+      const linesPane = h('div', { class: 'ed-lines' });
+      const rows = [];
+      p.lines.forEach((l, i) => {
+        const sus = l.status === 'low_conf' || l.status === 'unreadable';
+        if (S.onlySuspect && !sus && l.status !== 'edited') return;
+        const inp = h('input', { value: l.text, 'aria-label': `${p.page_no}쪽 ${l.line_no}번 줄`, 'data-i': i,
+          oninput: (e) => { l.text = e.target.value; if (l.status !== 'edited') { l.prev_status = l.status; l.status = 'edited'; row.className = 'ln edited on'; } },
+          onfocus: () => highlight(i),
+          onkeydown: (e) => { if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); nextSuspect(i); } if (e.key === 'Enter') { e.preventDefault(); focusLine(i + 1); } } });
+        const row = h('div', { class: 'ln' + (sus ? ' low' : '') + (l.status === 'edited' ? ' edited' : '') }, h('span', { class: 'n' }, l.line_no), inp, h('span', { class: 'c', title: '신뢰도' }, l.confidence == null ? '' : l.confidence));
+        rows[i] = row; linesPane.append(row);
+      });
+      function highlight(i) {
+        rows.forEach((r, k) => r && r.classList.toggle('on', k === i));
+        if (svg) { svg.querySelectorAll('rect').forEach((r) => r.classList.toggle('on', +r.dataset.i === i)); const b = p.lines[i]?.bbox; if (b) imgPane.scrollTo({ top: b[1] * zoom - 120, behavior: 'smooth' }); }
+      }
+      function focusLine(i) { const r = rows[i]; if (r) { r.querySelector('input').focus(); r.scrollIntoView({ block: 'nearest' }); } }
+      function nextSuspect(from) {
+        for (let k = from + 1; k < p.lines.length; k++) if (rows[k] && (p.lines[k].status === 'low_conf' || p.lines[k].status === 'unreadable')) return focusLine(k);
+        A.toast('이 쪽에 남은 의심 줄이 없어요');
+      }
+      const pageChips = d.pages.map((pg) => h('button', { class: 'chip btnchip' + (pg.page_no === p.page_no ? ' on' : ''), onclick: () => { S.curPage = pg.page_no; draw(); } }, `${pg.page_no}쪽${pg.suspect_count ? ' · ' + pg.suspect_count : ''}`));
+      return h('div', null,
+        h('div', { class: 'ed-bar' }, h('div', { class: 'row' }, pageChips), h('span', { class: 'spacer' }),
+          h('span', { class: 'small muted' }, `${A.ENGINE_LABEL[p.final_engine] || ''}${p.confidence != null ? ' · 평균 신뢰도 ' + p.confidence : ''}`),
+          h('label', { class: 'row small' }, h('span', { class: 'switch' }, h('input', { type: 'checkbox', checked: S.onlySuspect, onchange: (e) => { S.onlySuspect = e.target.checked; draw(); } }), h('span')), '의심 줄만'),
+          d.structure ? h('button', { class: 'btn sm', title: 'OCR이 ①~⑤를 @, 6) 등으로 읽은 곳을 문항 구조에 맞춰 바로잡음', onclick: () => fixMarks(d) }, '선지 기호 정리') : null,
+          h('button', { class: 'btn sm', onclick: () => nextSuspect(-1) }, '첫 의심 줄로 (Tab: 다음)')),
+        h('div', { class: 'editor' }, imgPane, linesPane));
+    }
+
+    function fixMarks(d) {
+      const byGid = new Map();
+      d.pages.forEach((p) => p.lines.forEach((l) => byGid.set(l.gid, l)));
+      let n = 0;
+      for (const it of d.structure.items) for (const [k, refs] of Object.entries(it.choice_refs || {})) {
+        const l = byGid.get(refs[0]);
+        if (!l) continue;
+        const fixed = l.text.replace(/^\s*(?:[@®©◎○⓪⑥](?:\))?|\(?[1-6]\))\s*/, A.structure.CH[k - 1] + ' ');
+        if (fixed !== l.text && !l.text.trim().startsWith(A.structure.CH[k - 1])) { l.text = fixed; l.status = 'edited'; n++; }
+      }
+      d.structure = A.structure.rebuild(d);
+      if (d.mode === 'analyze') d.analysis = A.structure.analyze(d);
+      A.toast(n ? `선지 기호 ${n}개를 ①~⑤로 고쳤어요` : '고칠 선지 기호가 없어요');
+      draw();
+    }
+
+    function itemsView(d) {
+      const st = d.structure;
+      const sel = (val, map, on) => h('select', { class: 'input', style: { height: '24px', fontSize: '11.5px', padding: '0 4px' }, onchange: (e) => on(e.target.value) }, Object.entries(map).map(([k, v]) => h('option', { value: k, selected: k === val }, v)));
+      const review = st.items.filter((i) => i.needs_review && !i.teacher_confirmed).length;
+      const list = h('div', { class: 'items' });
+      let lastSet = -1;
+      for (const it of st.items) {
+        if (it.set != null && it.set !== lastSet) {
+          const s = st.sets[it.set];
+          list.append(h('div', { class: 'set-h' }, h('b', null, s.header || '(지문)'), ` · 지문 ${s.passage_refs.length}줄`));
+          lastSet = it.set;
+        }
+        const need = it.needs_review && !it.teacher_confirmed;
+        list.append(h('div', { class: 'item' + (need ? ' need' : '') },
+          h('div', { class: 'item-h' },
+            h('span', { class: 'no' }, it.number + '.'),
+            sel(it.domain, A.structure.DOMAIN, (v) => { it.domain = v; }),
+            sel(it.item_type, A.structure.TYPE, (v) => { it.item_type = v; }),
+            it.negative ? h('span', { class: 'chip warn' }, '부정 발문') : null,
+            h('span', { class: 'spacer' }),
+            h('span', { class: 'chip ' + (it.confidence >= 0.65 ? 'ok' : 'warn'), title: '구조 신뢰도' }, `신뢰도 ${Math.round(it.confidence * 100)}`),
+            need || it.teacher_confirmed ? h('label', { class: 'row small' }, h('input', { type: 'checkbox', checked: it.teacher_confirmed, onchange: (e) => { it.teacher_confirmed = e.target.checked; draw(); } }), '확인함') : null),
+          h('div', { class: 'stem' }, it.stem),
+          it.boogi ? h('div', { class: 'boogi' }, '<보기> ', it.boogi) : null,
+          h('ol', { class: 'ch' }, [1, 2, 3, 4, 5].map((k) => h('li', { style: it.choices[k] ? null : { color: 'var(--bad)' } }, `${A.structure.CH[k - 1]} ${it.choices[k] || '(못 찾음)'}`))),
+          need ? h('div', { class: 'small', style: { color: 'var(--warn)', marginTop: '6px' } }, '검수 필요: 교사 확인 전에는 동형 출제 설계도에 쓰지 않아요.') : null));
+      }
+      if (!st.items.length) list.append(h('div', { class: 'empty' }, '문항을 찾지 못했어요. 교정 탭에서 문항 번호("12.")와 선지(①~⑤)를 확인한 뒤 "구조 다시 만들기"를 눌러 주세요.'));
+      return h('div', { class: 'card-b' },
+        h('div', { class: 'row small muted', style: { marginBottom: '10px' } }, `구조화 엔진: ${A.ENGINE_LABEL[st.engine]} · 지문 ${st.sets.length}개 · 문항 ${st.items.length}개 · 검수 필요 ${review}개`),
+        list);
+    }
+
+    function reportView(d) {
+      const a = d.analysis = A.structure.analyze(d);
+      const bars = (arr) => arr.map((x) => h('div', { class: 'hbar' }, h('span', null, x.label), h('div', { class: 't' }, h('div', { class: 'f', style: { width: x.pct + '%' } })), h('span', { class: 'v' }, x.n)));
+      const rep = h('div', { class: 'card-b stack', id: 'report' },
+        h('div', { class: 'stats' },
+          h('div', { class: 'stat' }, h('div', { class: 'k' }, '문항'), h('div', { class: 'v' }, a.n)),
+          h('div', { class: 'stat' }, h('div', { class: 'k' }, '부정 발문'), h('div', { class: 'v' }, a.n ? Math.round(a.neg * 100 / a.n) + '%' : '-')),
+          h('div', { class: 'stat' }, h('div', { class: 'k' }, '<보기> 적용'), h('div', { class: 'v' }, a.boogi)),
+          h('div', { class: 'stat' }, h('div', { class: 'k' }, '검수 필요'), h('div', { class: 'v', style: { color: a.review ? 'var(--warn)' : '' } }, a.review))),
+        h('div', { class: 'grid2' },
+          h('div', null, h('div', { class: 'lbl', style: { marginBottom: '6px' } }, '영역 분포'), bars(a.domains)),
+          h('div', null, h('div', { class: 'lbl', style: { marginBottom: '6px' } }, '발문 유형'), bars(a.types))),
+        h('div', null, h('div', { class: 'lbl', style: { marginBottom: '6px' } }, '학부모 상담용 요약'), h('div', { style: { lineHeight: '1.8', fontSize: '13.5px' } }, a.summary.map((t) => h('p', { style: { margin: '0 0 6px' } }, t)))),
+        h('div', { class: 'row' }, h('span', { class: 'small muted' }, '확인한 문항은 시험지 제작의 동형 설계도에 바로 쓸 수 있어요.'), h('span', { class: 'spacer' }),
+          h('button', { class: 'btn sm', onclick: () => A.go('build', { doc: d.id }) }, '이 분석으로 시험지 제작'),
+          h('button', { class: 'btn sm', onclick: () => printReport(rep, d) , html: icon('printer') + 'PDF로 인쇄' })));
+      return rep;
+    }
+
+    function logView(d) {
+      return h('div', { class: 'card-b' }, h('table', { class: 'tbl' },
+        h('thead', null, h('tr', null, ['쪽', '입력', '처리 경로', '최종', '평균 신뢰도', '의심 줄'].map((t) => h('th', null, t)))),
+        h('tbody', null, d.pages.map((p) => h('tr', null,
+          h('td', { class: 'num' }, p.page_no),
+          h('td', null, KIND_LABEL[p.kind]),
+          h('td', null, h('div', { class: 'chain' }, (p.fallback_path || []).map((x, i) => { const [e, o] = x.split(':'); return [i ? h('span', { class: 'arr' }, '→') : null, h('span', { class: 'chip ' + (o === 'ok' ? 'ok' : o === 'skipped' ? '' : 'warn') }, `${A.ENGINE_LABEL[e] || e} · ${A.OUTCOME_LABEL[o] || o}`)]; }))),
+          h('td', null, A.ENGINE_LABEL[p.final_engine] || p.final_engine),
+          h('td', { class: 'num' }, p.confidence ?? '-'),
+          h('td', { class: 'num' }, p.suspect_count))))),
+        h('p', { class: 'small muted' }, '시연판의 전용 OCR은 브라우저 안에서 도는 Tesseract입니다. 서비스 단계에서 Upstage/CLOVA 같은 한국어 문서 OCR로 바꾸면 신뢰도가 크게 올라가요.'));
+    }
+
+    function printReport(node, d) {
+      const pr = document.getElementById('print-root');
+      pr.innerHTML = '';
+      pr.append(h('div', { style: { padding: '16mm', fontFamily: 'Pretendard, sans-serif' } }, h('h1', { style: { fontSize: '20pt', marginBottom: '6mm' } }, `${d.title} 분석 리포트`), node.cloneNode(true)));
+      window.print();
+    }
+    function exportTxt(d) {
+      const t = d.pages.map((p) => `=== ${p.page_no}쪽 ===\n` + p.lines.map((l) => l.text).join('\n')).join('\n\n');
+      A.download(`${d.title}.txt`, t);
+    }
+    function exportJson(d) {
+      const slim = { ...d, pages: d.pages.map(({ src, ...rest }) => rest) };
+      A.download(`${d.title}.json`, JSON.stringify(slim, null, 2), 'application/json');
+    }
+
+    A.exam = { addFiles, start, state: S };
+    draw();
+    return { cleanup: () => { unsub(); document.removeEventListener('paste', onPaste); delete A.exam; } };
+  });
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 자료함 (요청 10: 저장된 시험지 이동, 기간 제한 없는 보관) */
+(function (A) {
+  'use strict';
+  const { h } = A;
+  const MODE = { text: '텍스트화', structure: '구조화', analyze: '분석' };
+  A.route('library', async (view) => {
+    const [docs, annos, builds] = await Promise.all([A.DB.all('documents'), A.DB.all('annotations'), A.DB.all('builds')]);
+    let filter = 'all';
+    const root = h('div');
+    view.append(root);
+    function draw() {
+      root.innerHTML = '';
+      const rows = [
+        ...docs.map((d) => ({ kind: 'doc', at: d.saved_at || d.created_at, d })),
+        ...annos.map((d) => ({ kind: 'anno', at: d.saved_at || d.created_at, d })),
+        ...builds.map((d) => ({ kind: 'build', at: d.saved_at || d.created_at, d })),
+      ].filter((r) => filter === 'all' || r.kind === filter).sort((a, b) => b.at - a.at);
+      const grid = h('div', { class: 'lib' });
+      for (const r of rows) {
+        const d = r.d;
+        if (r.kind === 'doc') {
+          const items = d.structure?.items?.length || 0;
+          grid.append(h('div', { class: 'card' },
+            h('div', { class: 'row' }, h('span', { class: 'chip accent' }, MODE[d.mode]), h('span', { class: 'chip' }, d.role), h('span', { class: 'spacer' }), h('span', { class: 'tiny muted' }, A.fmtDate(r.at))),
+            h('h3', null, d.title),
+            h('div', { class: 'small muted' }, `${d.pages.length}쪽${items ? ` · ${items}문항` : ''} · 의심 줄 ${d.pages.reduce((a, p) => a + (p.suspect_count || 0), 0)}`),
+            h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => A.go('exam', { doc: d.id }) }, '열기'),
+              items ? h('button', { class: 'btn sm', onclick: () => A.go('build', { doc: d.id }) }, '시험지 제작') : null,
+              h('button', { class: 'btn sm', onclick: () => A.go('design', { doc: d.id }) }, '디자인'),
+              h('span', { class: 'spacer' }),
+              h('button', { class: 'btn sm ghost danger', onclick: async () => { if (!confirm('삭제할까요?')) return; await A.DB.del('documents', d.id); docs.splice(docs.indexOf(d), 1); draw(); } }, '삭제'))));
+        } else if (r.kind === 'anno') {
+          grid.append(h('div', { class: 'card' },
+            h('div', { class: 'row' }, h('span', { class: 'chip accent' }, '주석'), h('span', { class: 'chip' }, d.genre || ''), h('span', { class: 'spacer' }), h('span', { class: 'tiny muted' }, A.fmtDate(r.at))),
+            h('h3', null, d.title || '제목 없음'),
+            h('div', { class: 'small muted' }, `주석 ${d.notes.length}개 · 필기량 ${d.density}`),
+            h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => A.go('annotate', { id: d.id }) }, '열기'), h('span', { class: 'spacer' }),
+              h('button', { class: 'btn sm ghost danger', onclick: async () => { if (!confirm('삭제할까요?')) return; await A.DB.del('annotations', d.id); annos.splice(annos.indexOf(d), 1); draw(); } }, '삭제'))));
+        } else {
+          grid.append(h('div', { class: 'card' },
+            h('div', { class: 'row' }, h('span', { class: 'chip accent' }, '설계도'), h('span', { class: 'chip' }, d.mode), h('span', { class: 'spacer' }), h('span', { class: 'tiny muted' }, A.fmtDate(r.at))),
+            h('h3', null, d.title),
+            h('div', { class: 'small muted' }, `${d.rounds}회차 · 회차당 ${d.perRound}칸`),
+            h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => A.go('build', { id: d.id }) }, '열기'), h('span', { class: 'spacer' }),
+              h('button', { class: 'btn sm ghost danger', onclick: async () => { if (!confirm('삭제할까요?')) return; await A.DB.del('builds', d.id); builds.splice(builds.indexOf(d), 1); draw(); } }, '삭제'))));
+        }
+      }
+      const total = docs.length + annos.length + builds.length;
+      const last = A.Backup.last();
+      const stale = total && (!last || Date.now() - last > 7 * 864e5);
+      const restoreIn = h('input', { type: 'file', accept: '.json,application/json', class: 'hidden', onchange: async (e) => {
+        const f = e.target.files[0]; e.target.value = '';
+        if (!f) return;
+        try { const n = await A.Backup.restore(f); A.toast(`자료 ${n}개를 복원했어요`); A.renderRoute(); } catch (err) { A.toast(err.message, 'bad'); }
+      } });
+      root.append(
+        h('div', { class: 'page-head' }, h('div', null, h('h1', null, '자료함'), h('p', null, '만든 자료를 기간 제한 없이 보관합니다. 다시 출력해도 비용이 없어요.')),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn', onclick: async () => { await A.Backup.export(); draw(); } }, '전체 내보내기'),
+            h('button', { class: 'btn', onclick: () => restoreIn.click() }, '파일에서 복원'), restoreIn)),
+        stale ? h('div', { class: 'card', style: { padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', borderColor: 'color-mix(in oklab, var(--warn) 50%, var(--line))' } },
+          h('span', { class: 'chip warn' }, '백업 필요'),
+          h('span', { class: 'small' }, last ? `마지막 백업이 ${Math.floor((Date.now() - last) / 864e5)}일 전입니다.` : '아직 백업한 적이 없어요.', ' 자료는 이 브라우저에만 있어서, 브라우저 기록을 지우면 사라져요.'),
+          h('span', { class: 'spacer' }),
+          h('button', { class: 'btn sm primary', onclick: async () => { await A.Backup.export(); draw(); } }, '지금 백업')) : null,
+        h('div', { class: 'row', style: { marginBottom: '12px' } },
+          h('div', { class: 'seg' }, [['all', '전체'], ['doc', '시험지'], ['anno', '주석'], ['build', '설계도']].map(([k, l]) => h('button', { class: filter === k ? 'on' : '', onclick: () => { filter = k; draw(); } }, l)))),
+        rows.length ? grid : h('div', { class: 'card empty' }, '아직 저장한 자료가 없어요. 시험지 분석·저장이나 주석 달기에서 "자료함에 저장"을 눌러 보세요.'));
+    }
+    draw();
+  });
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 주석 달기 (요청 1) + 주석교재 (요청 2, 시연판은 분량 계산·첨부자료 역할까지) */
+(function (A) {
+  'use strict';
+  const { h, esc } = A;
+  const CAT = {
+    '어휘': '#2563eb', '현대어풀이': '#0891b2', '표현법': '#9333ea', '화자·정서': '#db2777', '인물·사건': '#ea580c',
+    '구조': '#16a34a', '배경': '#64748b', '문법': '#0d9488', '출제포인트': '#dc2626', '기출연계': '#b45309',
+  };
+  const DENS = ['', '핵심만', '간결', '보통', '풍부', '촘촘'];
+  const SAMPLE = { title: '진달래꽃', author: '김소월', text: '나 보기가 역겨워\n가실 때에는\n말없이 고이 보내 드리우리다.\n\n영변에 약산\n진달래꽃\n아름 따다 가실 길에 뿌리우리다.\n\n가시는 걸음걸음\n놓인 그 꽃을\n사뿐히 즈려밟고 가시옵소서.\n\n나 보기가 역겨워\n가실 때에는\n죽어도 아니 눈물 흘리우리다.' };
+  const STOP = new Set(['그리고', '하지만', '그러나', '있는', '없는', '하는', '것은', '것이', '때에', '에서', '으로', '에게', '이다', '한다', '그는', '그의']);
+
+  function detectGenre(text) {
+    const lines = text.split('\n').filter((l) => l.trim());
+    const avg = lines.reduce((a, l) => a + l.length, 0) / Math.max(1, lines.length);
+    if (/[ㆍᆞᆢㅿㆁㆆ]/.test(text)) return '고전 시가';
+    if (/["“”]/.test(text) && avg > 30) return '소설';
+    if (avg < 32 && lines.length >= 3) return '현대시';
+    return '비문학';
+  }
+
+  // ---------- 1단계: 규칙 기반 사전 주석 (무료, 즉시) ----------
+  function ruleNotes(text, genre) {
+    const notes = [];
+    const add = (start, end, category, note, level) => { if (end > start) notes.push({ id: A.uid('n'), start, end, quote: text.slice(start, end), category, note, level, source: 'rule', anchor: 'exact', pinned: false, hidden: false }); };
+    const lines = []; let off = 0;
+    for (const l of text.split('\n')) { lines.push({ t: l, off }); off += l.length + 1; }
+    const isPoem = /시|시가/.test(genre);
+
+    // 수미상관: 첫 연과 마지막 연이 거의 같음
+    const stanzas = text.split(/\n\s*\n/);
+    if (isPoem && stanzas.length >= 3) {
+      const norm = (s) => s.replace(/\s/g, '').slice(0, 10);
+      if (norm(stanzas[0]) === norm(stanzas[stanzas.length - 1])) add(0, stanzas[0].split('\n')[0].length, '구조', '수미상관: 첫 연을 마지막 연에서 되풀이해 구조적 안정감과 주제 강조', 1);
+    }
+    for (const { t, off: o } of lines) {
+      if (!t.trim()) continue;
+      let m;
+      const reEx = /(아아|오오|어즈버|아으)|[가-힣]+(구나|도다|로다|노라)(?=[\s.,!?]|$)/g;
+      while ((m = reEx.exec(t))) add(o + m.index, o + m.index + m[0].length, '표현법', '영탄: 감탄의 말로 감정을 직접 드러냄', 2);
+      const last = t.trim().match(/([가-힣]+)([?？]|[.]?)$/);
+      if (last && (/[?？]$/.test(t.trim()) || /(랴|리오|리요|ㄴ가|는가|겠는가|을쏘냐|던가)$/.test(last[1]))) { const s = o + t.lastIndexOf(last[1]); add(s, s + last[1].length, '표현법', '설의: 묻는 형식으로 뜻을 강조', 2); }
+      else if (last && /(옵소서|소서|어라|아라|거라|시오)$/.test(last[1])) { const s = o + t.lastIndexOf(last[1]); add(s, s + last[1].length, '화자·정서', '명령·기원형 어미: 청자에게 바라는 화자의 태도', 2); }
+      else if (last && isPoem && /(우리다|리라|오리다|겠다|리로다)$/.test(last[1])) { const s = o + t.lastIndexOf(last[1]); add(s, s + last[1].length, '화자·정서', '의지·다짐의 어미: 화자의 굳은 태도(반어 여부 확인)', 2); }
+      const reColor = /(푸른|붉은|하얀|흰|검은|노란|파란|초록|금빛|은빛|잿빛|빨간)/g;
+      while ((m = reColor.exec(t))) add(o + m.index, o + m.index + m[0].length, '표현법', '색채 이미지: 시각적 심상', 4);
+      const reDup = /([가-힣]{2})\1/g;
+      while ((m = reDup.exec(t))) add(o + m.index, o + m.index + m[0].length, '표현법', '음성 상징·반복어: 리듬감과 생동감', 4);
+      const reHanja = /([가-힣]+)\(([\u4e00-\u9fff]+)\)/g;
+      while ((m = reHanja.exec(t))) add(o + m.index, o + m.index + m[0].length, '어휘', `한자 병기 어휘: ${m[1]}(${m[2]}) 뜻 확인`, 3);
+      if (/[ㆍᆞᆢㅿㆁㆆ]/.test(t)) add(o, o + Math.min(t.length, 12), '현대어풀이', '옛 표기: 현대어 풀이 필요', 2);
+      const reEllip = /…|\.{3}/g;
+      while ((m = reEllip.exec(t))) add(o + Math.max(0, m.index - 4), o + m.index + m[0].length, '표현법', '말줄임: 여운을 남김', 4);
+      if (!isPoem) {
+        const reConn = /(^|[.!?]\s*)(그러나|하지만|반면|따라서|그러므로|결국|예를 들어|가령|즉|다시 말해)(?=[\s,])/g;
+        const kind = { 그러나: '전환·대조', 하지만: '전환·대조', 반면: '대조', 따라서: '결론', 그러므로: '결론', 결국: '결론', '예를 들어': '예시', 가령: '예시', 즉: '부연', '다시 말해': '부연' };
+        while ((m = reConn.exec(t))) { const s = o + m.index + m[1].length; add(s, s + m[2].length, '구조', `접속 표현(${kind[m[2]]}): 글의 흐름이 바뀌는 지점`, ['결론', '전환·대조'].includes(kind[m[2]]) ? 2 : 3); }
+        const reDef = /([가-힣][가-힣\s]{1,18}?)(이란|란|이라고 한다|라고 한다|을 말한다|를 말한다|을 뜻한다|를 뜻한다)/g;
+        while ((m = reDef.exec(t))) add(o + m.index, o + m.index + m[0].length, '출제포인트', '개념 정의: 선지에서 그대로 묻는 경우가 많음', 1);
+        if (/^["“]/.test(t.trim())) add(o + t.indexOf(t.trim()), o + Math.min(t.length, t.indexOf(t.trim()) + 14), '인물·사건', '대화: 인물의 성격·관계가 드러남', 3);
+      }
+    }
+    if (isPoem) {
+      const first = text.match(/(나는|내가|나의|나\s|우리)/);
+      if (first) add(first.index, first.index + first[0].trim().length, '화자·정서', '화자가 겉으로 드러남(1인칭)', 3);
+      // 같은 시행 반복 (줄 단위) 먼저, 그다음 단어 반복
+      const lineCount = new Map();
+      for (const { t } of lines) { const k = t.trim(); if (k.length >= 3) lineCount.set(k, (lineCount.get(k) || 0) + 1); }
+      const repLines = [...lineCount.entries()].filter(([, n]) => n >= 2).map(([k]) => k);
+      for (const k of repLines) {
+        const L = lines.find((x) => x.t.trim() === k);
+        const s0 = L.off + L.t.indexOf(k);
+        if (!notes.some((x) => x.start <= s0 && x.end >= s0 + 2 && x.category === '구조')) add(s0, s0 + k.length, '표현법', `시행 반복: 같은 행이 ${lineCount.get(k)}번 나와 운율과 주제 강조`, 2);
+      }
+      const inRepLine = (w) => repLines.some((k) => k.includes(w));
+      const counts = new Map();
+      for (const w of text.match(/[가-힣]{2,}/g) || []) if (!STOP.has(w)) counts.set(w, (counts.get(w) || 0) + 1);
+      const reps = [...counts.entries()].filter(([w, n]) => n >= 2 && !inRepLine(w)).sort((a, b) => b[1] - a[1]).slice(0, 2);
+      for (const [w, n] of reps) {
+        const at = text.indexOf(w);
+        if (notes.some((x) => x.start <= at && x.end >= at + w.length)) continue;
+        add(at, at + w.length, '표현법', `반복: '${w}'이(가) ${n}번 나와 운율과 의미를 강조`, n >= 3 ? 2 : 3);
+      }
+    }
+    return notes.sort((a, b) => a.start - b.start || a.level - b.level);
+  }
+
+  // ---------- 위치 복구 (정확히 → 공백·부호 무시 → 실패) ----------
+  function anchor(text, quote) {
+    let i = text.indexOf(quote);
+    if (i >= 0) return { start: i, end: i + quote.length, anchor: 'exact' };
+    const map = []; let stripped = '';
+    for (let k = 0; k < text.length; k++) if (!/[\s.,!?·'"“”‘’()\-]/.test(text[k])) { map.push(k); stripped += text[k]; }
+    const q = quote.replace(/[\s.,!?·'"“”‘’()\-]/g, '');
+    if (q.length >= 2) { i = stripped.indexOf(q); if (i >= 0) return { start: map[i], end: map[i + q.length - 1] + 1, anchor: 'fuzzy' }; }
+    return { start: -1, end: -1, anchor: 'lost' };
+  }
+
+  async function aiNotes(doc, ctx) {
+    const prompt = `너는 고등학교 국어 교사다. 아래 ${doc.genre} 작품(또는 지문)에 수업용 주석을 달아라.
+규칙: quote는 원문에 있는 그대로의 짧은 구절(2~15자). 원문 전체를 다시 쓰지 말 것.
+category는 ${Object.keys(CAT).join(', ')} 중 하나. level은 중요도 1(가장 중요)~5. note는 60자 이내.
+JSON {"notes":[{"quote":"…","category":"…","note":"…","level":1}]} 로만 답하라. 25개 이내.
+제목: ${doc.title} ${doc.author ? '/ ' + doc.author : ''}
+원문:
+${doc.text}`;
+    ctx.stage('AI 주석 생성', 30);
+    const r = await A.gemini([{ text: prompt }]);
+    if (A.classifyOutcome(r.finishReason, (r.text || '').length, 0) !== 'ok' || !Array.isArray(r.json?.notes)) { const e = new Error(`AI 주석 실패 (${r.finishReason})`); throw e; }
+    ctx.stage('위치 연결', 80);
+    return r.json.notes.map((n) => ({ ...anchor(doc.text, n.quote || ''), id: A.uid('n'), quote: n.quote, category: CAT[n.category] ? n.category : '출제포인트', note: String(n.note || '').slice(0, 160), level: Math.min(5, Math.max(1, +n.level || 3)), source: 'ai', pinned: false, hidden: false }));
+  }
+
+  A.route('annotate', async (view, params) => {
+    const s = A.Settings.get();
+    let doc = params.id ? await A.DB.get('annotations', params.id) : null;
+    if (!doc) doc = A.annoDraft || { id: A.uid('an_'), ...SAMPLE, genre: detectGenre(SAMPLE.text), notes: [], density: s.annotation.density, layout: s.annotation.layout, created_at: Date.now() };
+    A.annoDraft = doc;
+    if (!doc.notes.length && doc.text) doc.notes = ruleNotes(doc.text, doc.genre);
+    const root = h('div');
+    view.append(root);
+    let hideCats = new Set();
+    let aiJob = null;
+    const unsub = A.Jobs.on(() => { if (aiJob && !['queued', 'running'].includes(aiJob.status)) { aiJob = null; draw(); } });
+
+    function visible() { return doc.notes.filter((n) => n.start >= 0 && !n.hidden && !hideCats.has(n.category) && (n.pinned || n.level <= doc.density)); }
+    function draw() {
+      root.innerHTML = '';
+      const vis = visible();
+      const lost = doc.notes.filter((n) => n.anchor === 'lost');
+      const counts = {};
+      for (const n of doc.notes) counts[n.category] = (counts[n.category] || 0) + 1;
+      const est = estimatePages(doc, vis);
+      const left = h('div', { class: 'card' },
+        h('div', { class: 'card-h' }, h('h3', null, '지문 넣기'), h('span', { class: 'sub' }, '붙여넣으면 바로 무료 사전 주석')),
+        h('div', { class: 'card-b stack' },
+          h('div', { class: 'grid2', style: { gridTemplateColumns: '1fr 1fr' } },
+            h('div', { class: 'field' }, h('label', null, '제목'), h('input', { class: 'input', value: doc.title || '', oninput: (e) => (doc.title = e.target.value) })),
+            h('div', { class: 'field' }, h('label', null, '작가'), h('input', { class: 'input', value: doc.author || '', oninput: (e) => (doc.author = e.target.value) }))),
+          h('div', { class: 'field' }, h('label', null, '갈래'), h('select', { class: 'input', onchange: (e) => { doc.genre = e.target.value; rerun(); } }, ['현대시', '고전 시가', '소설', '비문학'].map((g) => h('option', { selected: doc.genre === g }, g)))),
+          h('div', { class: 'field' }, h('label', null, '원문'), h('textarea', { class: 'input', rows: 14, 'aria-label': '원문', oninput: (e) => { doc.text = e.target.value; clearTimeout(doc._t); doc._t = setTimeout(() => { doc.genre = detectGenre(doc.text); rerun(); }, 600); } }, doc.text)),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn', onclick: rerun }, '사전 주석 다시'),
+            h('button', { class: 'btn primary', disabled: !!aiJob || !doc.text.trim(), title: s.ai.geminiKey ? '' : '설정 > OCR·AI에 Gemini 키를 넣으면 켜져요', onclick: runAI }, aiJob ? 'AI 주석 중…' : 'AI 주석 추가 (2단계)')),
+          !A.Settings.get().ai.geminiKey ? h('div', { class: 'small muted' }, 'AI 주석은 설정에 Gemini 키가 있을 때 동작해요. 지금 보이는 주석은 규칙 기반 1단계(무료)입니다.') : null,
+          lost.length ? h('div', { class: 'small', style: { color: 'var(--warn)' } }, `위치를 못 찾은 주석 ${lost.length}개: ${lost.map((n) => '"' + n.quote + '"').join(', ')} (버리지 않고 보관)`) : null));
+
+      const out = h('div', { class: 'anno-out ' + (doc.layout === 'note' ? 'note' : '') });
+      const lines = []; let off = 0;
+      for (const l of doc.text.split('\n')) { lines.push({ t: l, off }); off += l.length + 1; }
+      let no = 0;
+      for (const { t, off: o } of lines) {
+        if (!t.trim()) { out.append(h('div', { style: { height: '10px' } })); continue; }
+        no++;
+        const mine = vis.filter((n) => n.start >= o && n.start < o + t.length).sort((a, b) => a.start - b.start);
+        const tx = h('div', { class: 'tx' });
+        let cur = o;
+        for (const n of mine) {
+          if (n.start < cur) continue;
+          tx.append(document.createTextNode(doc.text.slice(cur, n.start)));
+          const e = Math.min(n.end, o + t.length);
+          const blank = doc.layout === 'blank' && ['어휘', '출제포인트', '현대어풀이', '구조'].includes(n.category);
+          tx.append(h('mark', { class: 'a' + (blank ? ' blank' : ''), style: { borderColor: CAT[n.category], background: s.annotation.autoHighlight && !blank ? CAT[n.category] + '14' : 'transparent' }, title: n.note }, doc.text.slice(n.start, e)));
+          cur = e;
+        }
+        tx.append(document.createTextNode(doc.text.slice(cur, o + t.length)));
+        const notesEl = h('div', { class: 'notes' }, mine.map((n) => noteCard(n)));
+        out.append(h('div', { class: 'anno-line' }, h('div', { class: 'ln-no' }, no), tx, mine.length || doc.layout !== 'note' ? notesEl : null));
+      }
+      const right = h('div', { class: 'card' },
+        h('div', { class: 'card-h' },
+          h('div', { class: 'dens' }, h('span', { class: 'lbl' }, '필기량'), h('input', { type: 'range', min: 1, max: 5, step: 1, value: doc.density, 'aria-label': '필기량', oninput: (e) => { doc.density = +e.target.value; draw(); } }), h('b', { class: 'small' }, `${doc.density} ${DENS[doc.density]}`), h('span', { class: 'tiny muted' }, '바꿔도 다시 생성 안 함 · 연필 0')),
+          h('div', { class: 'seg' }, [['wing', '날개형'], ['note', '노트형'], ['blank', '빈칸형']].map(([k, l]) => h('button', { class: doc.layout === k ? 'on' : '', onclick: () => { doc.layout = k; draw(); } }, l)))),
+        h('div', { class: 'card-b', style: { paddingBottom: '0' } },
+          h('div', { class: 'legend' }, Object.keys(CAT).filter((c) => counts[c]).map((c) => h('button', { class: 'chip btnchip', style: hideCats.has(c) ? { opacity: .4 } : { borderColor: CAT[c], color: CAT[c] }, onclick: () => { hideCats.has(c) ? hideCats.delete(c) : hideCats.add(c); draw(); } }, `${c} ${counts[c]}`))),
+          h('div', { class: 'small muted', style: { marginTop: '8px' } }, `표시 ${vis.length} / 전체 ${doc.notes.length} · 예상 분량 B4 2단 약 ${est}쪽`)),
+        out,
+        h('div', { class: 'card-b row', style: { borderTop: '1px solid var(--line)' } },
+          h('span', { class: 'small muted' }, '주석은 원문 위치에 묶여 있어 레이아웃·필기량을 바꿔도 그대로예요.'), h('span', { class: 'spacer' }),
+          h('button', { class: 'btn sm', onclick: () => { doc = { id: A.uid('an_'), title: '', author: '', text: '', genre: '비문학', notes: [], density: doc.density, layout: doc.layout, created_at: Date.now() }; A.annoDraft = doc; draw(); } }, '새 지문'),
+          h('button', { class: 'btn sm primary', onclick: async () => { doc.saved_at = Date.now(); const { _t, ...clean } = doc; await A.DB.put('annotations', clean); A.toast('자료함에 저장했어요'); } }, '자료함에 저장')));
+      root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, '주석 달기'), h('p', null, '지문을 넣으면 바로 주석이 달립니다. 필기량과 레이아웃(날개형·노트형·빈칸형)을 바꿔도 다시 만들지 않아요.'))),
+        h('div', { class: 'anno' }, left, right));
+    }
+    function noteCard(n) {
+      const txt = h('span', { class: 'txt', contenteditable: 'true', 'aria-label': `주석 내용: ${n.quote}`, onblur: (e) => { if (e.target.textContent !== n.note) { n.note = e.target.textContent; n.source = 'teacher'; } } }, n.note);
+      return h('div', { class: 'note' + (n.pinned ? ' pinned' : ''), style: { borderColor: CAT[n.category] } },
+        h('span', { class: 'cat', style: { color: CAT[n.category] } }, n.category),
+        txt,
+        h('span', { class: 'acts' },
+          h('button', { title: '고정: 필기량을 내려도 남김', 'aria-label': `${n.pinned ? '고정 해제' : '고정'}: ${n.quote}`, onclick: () => { n.pinned = !n.pinned; draw(); } }, n.pinned ? '고정 해제' : '고정'),
+          h('button', { title: '숨기기', 'aria-label': `숨기기: ${n.quote}`, onclick: () => { n.hidden = true; draw(); } }, '숨김')),
+        h('span', { class: 'tiny muted', title: '중요도 (1이 가장 중요)' }, 'L' + n.level));
+    }
+    function rerun() { const keep = doc.notes.filter((n) => n.source !== 'rule'); doc.notes = [...ruleNotes(doc.text, doc.genre), ...keep]; draw(); }
+    function runAI() {
+      aiJob = A.Jobs.create('annotate', `AI 주석: ${doc.title || '지문'}`, { passage_chars: doc.text.length }, async (ctx) => {
+        const add = await aiNotes(doc, ctx);
+        const fresh = add.filter((a) => !doc.notes.some((b) => b.start === a.start && b.category === a.category));
+        doc.notes.push(...fresh);
+        ctx.log('info', `AI 주석 ${fresh.length}개 추가 · 위치 못 찾음 ${fresh.filter((x) => x.anchor === 'lost').length}개 · 유사 매칭 ${fresh.filter((x) => x.anchor === 'fuzzy').length}개`);
+        return { added: fresh.length };
+      });
+      draw();
+    }
+    draw();
+    return { cleanup: unsub };
+  });
+
+  function estimatePages(doc, vis) {
+    const lines = doc.text.split('\n').length;
+    const noteLines = vis.reduce((a, n) => a + Math.ceil((n.note || '').length / 28), 0);
+    return Math.max(0.5, Math.round(((lines * 1.4 + noteLines * 0.8) / 110) * 10) / 10);
+  }
+
+  // ---------- 주석교재 (요청 2) ----------
+  const ROLE_W = { 학교프린트: 1.0, 교사용교과서: 0.9, 기출: 0.9, 자습서: 0.8, 평가문제집: 0.8, 수업필기: 0.7, 기타: 0.6 };
+  A.route('textbook', async (view) => {
+    const [annos, docs] = await Promise.all([A.DB.all('annotations'), A.DB.all('documents')]);
+    const sel = new Set(annos.map((a) => a.id));
+    const att = new Set();
+    let density = A.Settings.get().annotation.density, target = 0;
+    const root = h('div'); view.append(root);
+    function draw() {
+      root.innerHTML = '';
+      const units = annos.filter((a) => sel.has(a.id));
+      const per = units.map((u) => ({ u, pages: estimatePages(u, u.notes.filter((n) => n.start >= 0 && !n.hidden && (n.pinned || n.level <= density))) }));
+      const total = Math.round(per.reduce((a, x) => a + x.pages, 0) * 10) / 10;
+      let fitDensity = density;
+      if (target > 0) { for (let d = 5; d >= 1; d--) { const t = units.reduce((a, u) => a + estimatePages(u, u.notes.filter((n) => n.start >= 0 && !n.hidden && (n.pinned || n.level <= d))), 0); if (t <= target) { fitDensity = d; break; } fitDensity = 1; } }
+      root.append(
+        h('div', { class: 'page-head' }, h('div', null, h('h1', null, '주석교재'), h('p', null, '주석 단 작품을 묶어 교재를 만듭니다. 학교 프린트·교사용 교과서 같은 첨부자료는 역할별 가중치로 반영합니다.'))),
+        h('div', { class: 'grid2' },
+          h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, `작품 ${units.length}개`), h('a', { href: '#/annotate', class: 'small' }, '새 작품 주석 달기')),
+            h('div', { class: 'card-b' }, annos.length ? h('table', { class: 'tbl' }, h('tbody', null, annos.map((a) => h('tr', null,
+              h('td', null, h('input', { type: 'checkbox', checked: sel.has(a.id), onchange: (e) => { e.target.checked ? sel.add(a.id) : sel.delete(a.id); draw(); } })),
+              h('td', null, h('b', null, a.title || '제목 없음'), h('div', { class: 'tiny muted' }, `${a.genre} · 주석 ${a.notes.length}개`)),
+              h('td', { class: 'num small' }, (per.find((x) => x.u.id === a.id)?.pages ?? '-') + '쪽'))))) : h('div', { class: 'empty' }, '주석 달기에서 작품을 저장하면 여기서 묶을 수 있어요.'))),
+          h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, '필기량 = 분량 예산')),
+            h('div', { class: 'card-b stack' },
+              h('div', { class: 'dens' }, h('span', { class: 'lbl' }, '필기량'), h('input', { type: 'range', min: 1, max: 5, value: density, oninput: (e) => { density = +e.target.value; draw(); } }), h('b', { class: 'small' }, `${density} ${DENS[density]}`)),
+              h('div', { class: 'row' }, h('span', { class: 'small' }, '목표 쪽수'), h('input', { class: 'input', type: 'number', min: 0, value: target || '', placeholder: '없음', style: { width: '90px' }, oninput: (e) => { target = +e.target.value || 0; draw(); } }),
+                target ? h('span', { class: 'chip ' + (fitDensity === density ? 'ok' : 'warn') }, `맞추려면 필기량 ${fitDensity}`) : null,
+                target && fitDensity !== density ? h('button', { class: 'btn sm', onclick: () => { density = fitDensity; draw(); } }, '적용') : null),
+              h('div', { class: 'stats' }, h('div', { class: 'stat' }, h('div', { class: 'k' }, '예상 분량 (B4 2단)'), h('div', { class: 'v' }, total + '쪽')), h('div', { class: 'stat' }, h('div', { class: 'k' }, '첨부자료'), h('div', { class: 'v' }, att.size + '개'))),
+              h('div', { class: 'small muted' }, '단계별 구성: 1 출제포인트·기출 → 2 +핵심 어휘 → 3 +표현법·화자 → 4 +현대어 풀이·배경 → 5 +문법·첨부자료 전부'))),
+          h('div', { class: 'card', style: { gridColumn: '1 / -1' } }, h('div', { class: 'card-h' }, h('h3', null, '첨부자료 (역할별 가중치)'), h('a', { href: '#/exam?mode=text', class: 'small' }, '첨부자료 텍스트화하기')),
+            h('div', { class: 'card-b' }, docs.length ? h('table', { class: 'tbl' }, h('thead', null, h('tr', null, ['', '자료', '역할', '가중치', '지문 정렬'].map((t) => h('th', null, t)))), h('tbody', null, docs.map((d) => h('tr', null,
+              h('td', null, h('input', { type: 'checkbox', checked: att.has(d.id), onchange: (e) => { e.target.checked ? att.add(d.id) : att.delete(d.id); draw(); } })),
+              h('td', null, d.title), h('td', null, h('span', { class: 'chip' }, d.role)), h('td', { class: 'num' }, (ROLE_W[d.role] ?? 0.6).toFixed(1)),
+              h('td', { class: 'small muted' }, att.has(d.id) ? h('span', { class: 'chip' }, '준비 중') : '-'))))) : h('div', { class: 'empty' }, '시험지 분석·저장에서 프린트나 교재를 텍스트화해 저장하면 첨부자료로 쓸 수 있어요.'),
+              h('div', { class: 'row small muted' }, h('span', { class: 'chip' }, '준비 중'), '구조도(시상 전개도·인물 관계도·문단 구조도)와 첨부자료-지문 정렬')))));
+    }
+    draw();
+  });
+
+  A.annotate = { ruleNotes, anchor, detectGenre };
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 시험지 제작 (요청 3 + 6): 소재 → 설계도 → (생성) → (검토) → 출력 */
+(function (A) {
+  'use strict';
+  const { h } = A;
+  const SIM = { // DB set_sim_targets 와 같은 값 (원본 기출 대비)
+    '동형': [0.70, 1.00, 0.35, '구조는 같게, 표현은 새로'],
+    '선지변형': [0.80, 1.00, 0.60, '발문은 그대로, 선지만 새로'],
+    '보기선지변형': [0.60, 0.85, 0.45, '<보기>와 선지를 바꿈'],
+    '재구성': [0.40, 0.70, 0.30, '무엇을 판단하게 할지까지 새로 구성'],
+    '신규': [0.00, 0.50, 0.30, '원본과 다른 새 문항'],
+  };
+  const TRAPS = ['부분일치', '범위확대·축소', '인과전도', '주체혼동', '개념혼동', '보기오적용', '근거없음', '어휘착각'];
+  const AXIS = { FACT: '세부 정보 일치 판단', INFER: '전제·함축 추론', APPLY: '<보기> 사례에 원리 적용', VOCAB: '문맥에 맞는 의미 판단', STRUCT: '서술 방식 파악', EXPR: '표현 효과 판단', CHAR: '인물·화자의 태도 파악', COMPARE: '두 대상의 공통점·차이점', CRIT: '관점에 따른 비판·평가', GRAM: '문법 개념 적용', MEDIA: '매체 표현 의도', SPEECH: '말하기 전략 판단', WRITE: '고쳐쓰기 적절성' };
+  const DIFF = ['하', '중', '상', '최상'];
+  const CH = ['①', '②', '③', '④', '⑤'];
+
+  function planAnswers(n, seed) {
+    let x = (seed + 7) * 9301 + 49297;
+    const rnd = () => { x = (x * 9301 + 49297) % 233280; return x / 233280; };
+    const pool = []; for (let i = 0; i < n; i++) pool.push((i % 5) + 1);
+    const res = [];
+    while (pool.length) {
+      let k, tries = 0;
+      do { k = Math.floor(rnd() * pool.length); tries++; } while (res.length >= 2 && res[res.length - 1] === pool[k] && res[res.length - 2] === pool[k] && tries <= 20);
+      res.push(pool.splice(k, 1)[0]);
+    }
+    return res;
+  }
+
+  A.route('build', async (view, params) => {
+    const docs = (await A.DB.all('documents')).filter((d) => d.structure?.items?.length);
+    let b = params.id ? await A.DB.get('builds', params.id) : null;
+    if (!b) b = A.buildDraft || {
+      id: A.uid('bd_'), title: '변형 시험지', source: params.doc ? 'past' : 'passage', docId: params.doc || (docs[0]?.id ?? null),
+      passage: '식물은 빛 에너지를 이용하여 이산화 탄소와 물로 포도당을 만든다. 이 과정을 광합성이라 하며, 엽록체에서 일어난다.\n\n광합성으로 만들어진 포도당은 생장에 쓰이거나 녹말의 형태로 저장된다.\n\n한편 빛의 세기가 일정 수준을 넘으면 광합성 속도는 더 이상 증가하지 않는다. 이 지점을 광포화점이라 한다.\n\n광포화점은 식물마다 다르며, 그늘에서 자라는 식물은 대체로 광포화점이 낮다.',
+      mode: '신규', rounds: 3, perRound: 5, types: ['FACT', 'INFER', 'APPLY', 'VOCAB'], curve: 'up', balance: true, slots: [], created_at: Date.now(),
+    };
+    if (params.doc) { b.source = 'past'; b.docId = params.doc; if (b.mode === '신규') b.mode = '동형'; }
+    A.buildDraft = b;
+    let tabRound = 1;
+    const root = h('div'); view.append(root);
+
+    const paragraphs = () => (b.passage || '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    function sourceItems() {
+      const d = docs.find((x) => x.id === b.docId);
+      if (!d) return { usable: [], excluded: [] };
+      const usable = d.structure.items.filter((i) => !i.needs_review || i.teacher_confirmed);
+      return { usable, excluded: d.structure.items.filter((i) => i.needs_review && !i.teacher_confirmed), doc: d };
+    }
+    function diffFor(j, n) {
+      if (b.curve === 'flat') return '중';
+      if (b.curve === 'up') return DIFF[Math.min(3, Math.floor((j / Math.max(1, n - 1)) * 3.999))];
+      return null;
+    }
+    function plan() {
+      const old = b.slots.filter((s) => s.locked);
+      const slots = [];
+      for (let r = 1; r <= b.rounds; r++) {
+        if (b.source === 'past') {
+          const { usable } = sourceItems();
+          const ans = planAnswers(usable.length, r);
+          usable.forEach((it, j) => slots.push(old.find((o) => o.round === r && o.slot === j + 1) || { round: r, slot: j + 1, ref: `원본 ${it.number}번`, evidence: it.set != null ? `지문 ${it.set + 1}` : '-', type: it.item_type, axis: AXIS[it.item_type] || '', trap: TRAPS[(j + r) % TRAPS.length], diff: diffFor(j, usable.length) || (it.domain === 'GRAMMAR' ? '상' : '중'), answer: b.balance ? ans[j] : null, locked: false }));
+        } else {
+          const ps = paragraphs();
+          const n = b.perRound;
+          const ans = planAnswers(n, r);
+          for (let j = 0; j < n; j++) {
+            const p = ps.length ? ((j + (r - 1) * Math.max(1, Math.floor(ps.length / 2))) % ps.length) + 1 : 1;
+            const type = b.types.length ? b.types[(j + r - 1) % b.types.length] : 'FACT';
+            slots.push(old.find((o) => o.round === r && o.slot === j + 1) || { round: r, slot: j + 1, ref: '-', evidence: `문단 ${p}`, type, axis: AXIS[type] || '', trap: TRAPS[(j * 3 + r) % TRAPS.length], diff: diffFor(j, n) || '중', answer: b.balance ? ans[j] : null, locked: false });
+          }
+        }
+      }
+      b.slots = slots;
+    }
+    if (!b.slots.length) plan();
+
+    function stats(r) {
+      const ss = b.slots.filter((s) => s.round === r);
+      const dist = [1, 2, 3, 4, 5].map((k) => ss.filter((s) => s.answer === k).length);
+      let run = 1, maxRun = 1;
+      for (let i = 1; i < ss.length; i++) { run = ss[i].answer && ss[i].answer === ss[i - 1].answer ? run + 1 : 1; maxRun = Math.max(maxRun, run); }
+      const ev = {}; ss.forEach((s) => (ev[s.evidence] = (ev[s.evidence] || 0) + 1));
+      return { dist, maxRun, ev, n: ss.length };
+    }
+
+    function draw() {
+      root.innerHTML = '';
+      const { usable, excluded } = sourceItems();
+      const [smin, smax, surf, desc] = SIM[b.mode];
+      const st = stats(tabRound);
+      const steps = h('div', { class: 'steps' },
+        [['① 소재', b.source === 'past' ? '기출·분석 결과' : '지문'], ['② 설계도', '무료 · 지금 단계'], ['③ 생성', '서버 큐 · 칸별'], ['④ 검토', '풀이 검증 · 후보 비교'], ['⑤ 출력', '디자인 작업대']].map(([t, s], i) => h('div', { class: 'step' + (i === 1 ? ' on' : i > 1 ? ' off' : '') }, h('b', null, t), h('span', null, s))));
+      const srcCard = h('div', { class: 'card' },
+        h('div', { class: 'card-h' }, h('h3', null, '① 소재와 모드'), h('div', { class: 'seg' }, [['passage', '지문 변형'], ['past', '기출 변형·동형']].map(([k, l]) => h('button', { class: b.source === k ? 'on' : '', onclick: () => { b.source = k; if (k === 'past' && b.mode === '신규') b.mode = '동형'; plan(); draw(); } }, l)))),
+        h('div', { class: 'card-b stack' },
+          h('div', { class: 'field' }, h('label', null, '시험지 제목'), h('input', { class: 'input', value: b.title, oninput: (e) => (b.title = e.target.value) })),
+          b.source === 'passage'
+            ? h('div', { class: 'field' }, h('label', null, `지문 (빈 줄로 문단 구분 · 현재 ${paragraphs().length}문단)`), h('textarea', { class: 'input', rows: 7, onchange: (e) => { b.passage = e.target.value; plan(); draw(); } }, b.passage))
+            : h('div', { class: 'field' }, h('label', null, '원본 (자료함의 구조화·분석 결과)'),
+                docs.length ? h('select', { class: 'input', onchange: (e) => { b.docId = e.target.value; plan(); draw(); } }, docs.map((d) => h('option', { value: d.id, selected: d.id === b.docId }, `${d.title} · ${d.structure.items.length}문항`))) : h('div', { class: 'small muted' }, '자료함에 구조화한 시험지가 없어요. 시험지 분석·저장에서 먼저 분석해 주세요.'),
+                docs.length ? h('div', { class: 'small muted' }, `사용 ${usable.length}문항${excluded.length ? ` · 검수 필요로 제외 ${excluded.length}문항 (${excluded.map((i) => i.number + '번').join(', ')}) — 분석 화면에서 "확인함"을 누르면 포함돼요` : ''}`) : null),
+          h('div', { class: 'grid2', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' } },
+            h('div', { class: 'field' }, h('label', null, '유사도 모드'), h('select', { class: 'input', onchange: (e) => { b.mode = e.target.value; draw(); } }, Object.keys(SIM).map((m) => h('option', { value: m, selected: b.mode === m }, m)))),
+            h('div', { class: 'field' }, h('label', null, '회차'), h('input', { class: 'input', type: 'number', min: 1, max: 20, value: b.rounds, onchange: (e) => { b.rounds = Math.max(1, Math.min(20, +e.target.value || 1)); tabRound = Math.min(tabRound, b.rounds); plan(); draw(); } })),
+            b.source === 'passage' ? h('div', { class: 'field' }, h('label', null, '회차당 문항'), h('input', { class: 'input', type: 'number', min: 1, max: 15, value: b.perRound, onchange: (e) => { b.perRound = Math.max(1, Math.min(15, +e.target.value || 1)); plan(); draw(); } })) : null,
+            h('div', { class: 'field' }, h('label', null, '난도 흐름'), h('select', { class: 'input', onchange: (e) => { b.curve = e.target.value; plan(); draw(); } }, [['up', '쉬움 → 어려움'], ['flat', '고르게'], ['source', '원본 따름']].map(([v, l]) => h('option', { value: v, selected: b.curve === v }, l))))),
+          b.source === 'passage' ? h('div', null, h('div', { class: 'lbl', style: { marginBottom: '6px' } }, '발문 유형 (회차마다 순서를 돌려 배치)'), h('div', { class: 'row' }, Object.entries(A.structure.TYPE).map(([k, l]) => h('button', { class: 'chip btnchip' + (b.types.includes(k) ? ' on' : ''), onclick: () => { b.types = b.types.includes(k) ? b.types.filter((x) => x !== k) : [...b.types, k]; plan(); draw(); } }, l)))) : null,
+          h('label', { class: 'row small' }, h('span', { class: 'switch' }, h('input', { type: 'checkbox', checked: b.balance, onchange: (e) => { b.balance = e.target.checked; plan(); draw(); } }), h('span')), '정답 번호 균형 (1~5 고르게, 같은 번호 3연속 금지)')));
+
+      const simCard = h('div', { class: 'card' },
+        h('div', { class: 'card-h' }, h('h3', null, '유사도 기준'), h('span', { class: 'sub' }, desc)),
+        h('div', { class: 'card-b stack' },
+          simChart(b.mode),
+          h('dl', { class: 'kv' },
+            h('dt', null, '원본 대비 구조'), h('dd', { class: 'num' }, `${smin.toFixed(2)} ~ ${smax.toFixed(2)}`),
+            h('dt', null, '원본 대비 표현'), h('dd', { class: 'num' }, `${surf.toFixed(2)} 이하`),
+            h('dt', null, '세트 안 두 문항'), h('dd', null, '표현 0.60 이하 · 근거 겹침 0.50 이하'),
+            h('dt', null, '지난 문항'), h('dd', null, '같은 지문으로 만든 문항 은행과도 비교')),
+          h('div', { class: 'small muted' }, '구조 = 발문 유형 0.4 + 발문 뼈대 0.3 + 근거 겹침 0.3 · 표현 = max(본문 임베딩, 선지 3-gram)')));
+
+      const roundTabs = h('div', { class: 'res-tabs' }, Array.from({ length: b.rounds }, (_, i) => h('button', { class: tabRound === i + 1 ? 'on' : '', onclick: () => { tabRound = i + 1; draw(); } }, `${i + 1}회차`)));
+      const sel = (val, opts, on) => h('select', { class: 'cell-in', onchange: (e) => on(e.target.value) }, opts.map(([v, l]) => h('option', { value: v, selected: String(val) === String(v) }, l)));
+      const rows = b.slots.filter((s) => s.round === tabRound).map((s) => h('tr', null,
+        h('td', { class: 'num' }, s.slot),
+        h('td', { class: 'small' }, s.evidence, s.ref !== '-' ? h('div', { class: 'tiny muted' }, s.ref) : null),
+        h('td', null, sel(s.type, Object.entries(A.structure.TYPE), (v) => { s.type = v; s.axis = AXIS[v] || s.axis; s.locked = true; draw(); })),
+        h('td', null, h('input', { class: 'cell-in', value: s.axis, oninput: (e) => { s.axis = e.target.value; s.locked = true; } })),
+        h('td', null, sel(s.trap, TRAPS.map((t) => [t, t]), (v) => { s.trap = v; s.locked = true; })),
+        h('td', null, sel(s.diff, DIFF.map((d) => [d, d]), (v) => { s.diff = v; s.locked = true; })),
+        h('td', null, sel(s.answer ?? '', [['', '자유'], ...CH.map((c, i) => [i + 1, c])], (v) => { s.answer = v ? +v : null; s.locked = true; draw(); })),
+        h('td', null, h('label', { class: 'row tiny', title: '고정한 칸은 다시 배치해도 그대로' }, h('input', { type: 'checkbox', checked: s.locked, onchange: (e) => { s.locked = e.target.checked; } }), '고정'))));
+      const maxD = Math.max(1, ...st.dist);
+      const planCard = h('div', { class: 'card' },
+        h('div', { class: 'card-h' }, h('div', null, h('h3', null, '② 설계도'), h('div', { class: 'sub' }, `${b.rounds}회차 · 총 ${b.slots.length}칸 · 칸마다 근거·판단축·함정·목표 정답을 먼저 정합니다`)),
+          h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { plan(); draw(); A.toast('고정하지 않은 칸을 다시 배치했어요'); } }, '다시 배치'),
+            h('button', { class: 'btn sm', onclick: () => A.download(`${b.title}-설계도.json`, JSON.stringify({ title: b.title, mode: b.mode, targets: SIM[b.mode].slice(0, 3), slots: b.slots }, null, 2), 'application/json') }, 'JSON'),
+            h('button', { class: 'btn sm primary', onclick: async () => { b.saved_at = Date.now(); await A.DB.put('builds', b); A.toast('설계도를 자료함에 저장했어요'); } }, '설계도 저장'))),
+        roundTabs,
+        h('div', { class: 'card-b' },
+          h('div', { class: 'grid2', style: { marginBottom: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' } },
+            h('div', null, h('div', { class: 'lbl' }, `정답 분포 · 최대 연속 ${st.maxRun}번 ${st.maxRun >= 3 ? '(주의)' : '(통과)'}`),
+              h('div', { class: 'row', style: { alignItems: 'flex-end', gap: '10px', height: '64px', marginTop: '6px' } }, st.dist.map((c, i) => h('div', { style: { textAlign: 'center', fontSize: '11px' } }, h('div', { style: { width: '26px', height: Math.max(3, (c / maxD) * 44) + 'px', background: 'var(--accent)', borderRadius: '4px 4px 1px 1px', opacity: c ? 1 : 0.2 } }), CH[i] + ' ' + c)))),
+            h('div', null, h('div', { class: 'lbl' }, '근거 범위 분포'), h('div', { class: 'row', style: { marginTop: '8px' } }, Object.entries(st.ev).map(([k, v]) => h('span', { class: 'chip' + (v > 1 && b.source === 'passage' && st.n <= paragraphs().length ? ' warn' : '') }, `${k} × ${v}`))))),
+          h('table', { class: 'tbl' }, h('thead', null, h('tr', null, ['칸', '근거', '발문 유형', '판단축', '함정', '난도', '목표 정답', ''].map((t) => h('th', null, t)))), h('tbody', null, rows))));
+
+      const nextCard = h('div', { class: 'card' },
+        h('div', { class: 'card-h' }, h('h3', null, '③ 생성 · ④ 검토'), h('span', { class: 'chip' }, '준비 중')),
+        h('div', { class: 'card-b stack' },
+          h('div', { class: 'small' }, `견적: ${b.slots.length}칸 · 검증 실패로 버린 후보는 차감하지 않음`),
+          h('div', { class: 'small muted' }, '칸마다 생성 → 자동 검증(선지 5개·정답 범위·중복 선지, 다른 모델의 풀이 검증, 근거 인용 대조, 정답 길이 편향) → 유사도 기준 통과 시 자동 확정, 아니면 후보 비교 화면. 앞 회차의 (발문 뼈대, 근거, 정답 진술)을 "이미 사용됨"으로 넘겨 회차 간 중복을 막습니다.'),
+          h('div', { class: 'row' }, h('span', { class: 'chip' }, '준비 중'), h('a', { href: '#/settings?s=ocr', class: 'small' }, '연결 상태 보기'))));
+      root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, '시험지 제작'), h('p', null, '지문이나 기출 문항으로 변형 시험지를 만듭니다. 생성 전에 설계도로 회차 간 중복과 정답 쏠림을 먼저 막습니다.'))),
+        steps, h('div', { class: 'grid2', style: { marginBottom: '16px' } }, srcCard, simCard), h('div', { class: 'stack' }, planCard, nextCard));
+    }
+
+    function simChart(mode) {
+      const W = 300, H = 170, L = 30, B = 24, T = 6, R = 6;
+      const x = (v) => L + v * (W - L - R), y = (v) => T + (1 - v) * (H - T - B);
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', '100%'); svg.setAttribute('height', H);
+      let s = '';
+      for (const v of [0, 0.5, 1]) s += `<line x1="${x(0)}" x2="${x(1)}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 4}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)">${v}</text><text x="${x(v)}" y="${H - 8}" font-size="9" text-anchor="middle" fill="var(--muted)">${v}</text>`;
+      for (const [m, [a, bb, c]] of Object.entries(SIM)) {
+        const on = m === mode;
+        s += `<rect x="${x(0)}" y="${y(bb)}" width="${x(c) - x(0)}" height="${y(a) - y(bb)}" fill="${on ? 'var(--accent)' : 'var(--muted)'}" fill-opacity="${on ? 0.18 : 0.04}" stroke="${on ? 'var(--accent)' : 'var(--line-2)'}"/>`;
+        if (on) s += `<text x="${x(c) - 4}" y="${y(a) - 4}" font-size="10" text-anchor="end" fill="var(--accent)" font-weight="700">${m}</text>`;
+      }
+      s += `<text x="${x(1)}" y="${H}" font-size="9" text-anchor="end" fill="var(--muted)">표현 유사도 →</text><text x="${L + 3}" y="${T + 9}" font-size="9" fill="var(--muted)">↑ 구조</text>`;
+      svg.innerHTML = s;
+      return svg;
+    }
+    draw();
+    A.build = { state: b, plan, stats };
+  });
+  A.planAnswers = planAnswers;
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 디자인 작업대 (요청 8: 배너 슬롯 자유 교체, 내 문서 미리보기, 문항 잘림 방지, 목표 쪽수 맞춤) */
+(function (A) {
+  'use strict';
+  const { h, esc, icon } = A;
+  const MM = 96 / 25.4;
+  const PAPER = { A4: [210, 297], B4: [257, 364] };
+  const SLOT_INFO = {
+    header: ['머리 배너', '모든 쪽 맨 위 띠'], cover: ['표지', '첫 장 전체'], divider: ['구역 띠', '지문 묶음 사이'],
+    footer: ['꼬리말', '쪽 번호와 문구'], watermark: ['워터마크', '본문 뒤 흐린 그림·글자'], logo: ['로고', '머리 배너 오른쪽'],
+  };
+  const MODES = { auto: '자동', image: '이미지', library: '라이브러리', text: '글자', none: '없음' };
+  const SLOT_MODES = { header: ['auto', 'image', 'library', 'text', 'none'], cover: ['auto', 'image', 'library', 'none'], divider: ['auto', 'image', 'library', 'none'], footer: ['text', 'none'], watermark: ['image', 'library', 'text', 'none'], logo: ['image', 'library', 'none'] };
+  const SWATCHES = ['#904ae8', '#316a59', '#1d4ed8', '#0f766e', '#b45309', '#be123c', '#334155', '#7c3aed'];
+  const SAMPLE = [
+    '[1~2] 다음 글을 읽고 물음에 답하시오.', '식물은 빛 에너지를 이용하여 이산화 탄소와 물로 포도당을 만든다. 이 과정을 광합성이라 하며, 엽록체에서 일어난다. 광합성으로 만들어진 포도당은 생장에 쓰이거나 녹말의 형태로 저장된다. 한편 빛의 세기가 일정 수준을 넘으면 광합성 속도는 더 이상 증가하지 않는다. 이 지점을 광포화점이라고 하며, 식물마다 그 값이 다르다.',
+    '1. 윗글의 내용과 일치하지 않는 것은?', '① 광합성은 엽록체에서 일어난다.', '② 광합성에는 빛 에너지가 필요하다.', '③ 포도당은 녹말의 형태로 저장될 수 있다.', '④ 빛이 강할수록 광합성 속도는 계속 증가한다.', '⑤ 광포화점은 식물마다 다를 수 있다.',
+    '2. 윗글을 바탕으로 <보기>를 이해한 내용으로 적절한 것은? [3점]', '<보기>', '어떤 학생이 빛의 세기를 달리하며 수초에서 나오는 기포 수를 세었다.', '① 기포 수는 빛의 세기와 관계가 없다.', '② 빛이 약할 때 기포 수가 가장 많다.', '③ 빛이 일정 세기를 넘으면 기포 수 증가가 멈춘다.', '④ 기포는 녹말이 분해되어 생긴다.', '⑤ 수초는 빛 없이도 광합성을 한다.',
+    '[3~4] 다음 시를 읽고 물음에 답하시오.', '나 보기가 역겨워\n가실 때에는\n말없이 고이 보내 드리우리다.\n\n영변에 약산\n진달래꽃\n아름 따다 가실 길에 뿌리우리다.\n\n가시는 걸음걸음\n놓인 그 꽃을\n사뿐히 즈려밟고 가시옵소서.\n\n나 보기가 역겨워\n가실 때에는\n죽어도 아니 눈물 흘리우리다.\n                    - 김소월, 「진달래꽃」',
+    '3. 윗글의 화자에 대한 설명으로 적절하지 않은 것은?', '① 화자는 이별의 상황에 놓여 있다.', '② 화자는 임을 말없이 보내겠다고 한다.', '③ 화자는 임이 가는 길에 꽃을 뿌리겠다고 한다.', '④ 화자는 임을 원망하며 떠나지 말라고 외친다.', '⑤ 화자는 슬픔을 겉으로 드러내지 않으려 한다.',
+    '4. 윗글의 표현상 특징으로 가장 적절한 것은?', '① 반어적 표현으로 화자의 정서를 드러낸다.', '② 색채 대비로 계절의 변화를 보여 준다.', '③ 의성어를 활용하여 생동감을 준다.', '④ 명령형 어미로 단호한 태도를 드러낸다.', '⑤ 설의적 표현으로 주제를 강조한다.',
+  ];
+
+  function defaults() {
+    const s = A.Settings.get();
+    return {
+      name: '기본 · ' + s.brand.academyName + ' 시험지', paper: s.output.paper || 'B4', columns: 2, fontPt: 10, lineSpacing: 1.65, margin: 14, accent: s.brand.accent,
+      brand: { academyName: s.brand.academyName, title: '', sub: '국어 영역', footerText: s.brand.footerText, pageNumbers: true },
+      slots: {
+        header: { mode: 'auto', asset: null, fit: 'cover', fx: 50, fy: 50, height: 22, opacity: 1, pages: 'all', textColor: 'auto' },
+        cover: { mode: 'none', asset: null, fit: 'cover', fx: 50, fy: 50, opacity: 1 },
+        divider: { mode: 'auto', asset: null, height: 1.6 },
+        footer: { mode: 'text' },
+        watermark: { mode: 'none', asset: null, opacity: 0.06, text: '' },
+        logo: { mode: 'none', asset: null },
+      },
+    };
+  }
+  const PRESETS_KEY = 'ks.design.presets';
+  const loadPresets = () => JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]');
+  const savePresets = (p) => localStorage.setItem(PRESETS_KEY, JSON.stringify(p));
+
+  A.route('design', async (view, params) => {
+    view.className = 'view flush';
+    const presets = loadPresets();
+    const def = presets.find((p) => p.is_default);
+    let st = def ? A.deepMerge(defaults(), A.clone(def.state)) : defaults();
+    let presetId = def?.id || null;
+    const undo = [], redo = [];
+    let tab = 'banner', openSlot = 'header', zoom = 0.62, curPage = 0, sourceId = params.doc || 'sample', warnings = [], pageCount = 0;
+    const assets = new Map();
+    for (const a of await A.DB.all('assets')) assets.set(a.id, a);
+    const docs = (await A.DB.all('documents')).filter((d) => d.structure?.items?.length);
+
+    const left = h('div', { class: 'wb-left' });
+    const center = h('div', { class: 'wb-center' });
+    const right = h('div', { class: 'wb-right' });
+    view.append(h('div', { class: 'wb' }, left, center, right));
+
+    function commit(mut, { soft } = {}) {
+      if (!soft) { undo.push(JSON.stringify(st)); if (undo.length > 80) undo.shift(); redo.length = 0; }
+      mut(st);
+      drawLeft(); drawPreview();
+    }
+    let softTimer = null;
+    function commitSoft(mut) { // 슬라이더: 끌기 시작할 때 한 번만 기록
+      if (!softTimer) { undo.push(JSON.stringify(st)); redo.length = 0; }
+      clearTimeout(softTimer); softTimer = setTimeout(() => (softTimer = null), 600);
+      mut(st); drawPreview(); syncLabels();
+    }
+    function doUndo() { if (!undo.length) return; redo.push(JSON.stringify(st)); st = JSON.parse(undo.pop()); drawLeft(); drawPreview(); }
+    function doRedo() { if (!redo.length) return; undo.push(JSON.stringify(st)); st = JSON.parse(redo.pop()); drawLeft(); drawPreview(); }
+
+    async function addAsset(file, slot) {
+      if (!file || !file.type.startsWith('image/')) return A.toast('이미지 파일만 넣을 수 있어요', 'bad');
+      if (file.size > 5 * 1024 * 1024) return A.toast('5MB 이하 이미지만 넣을 수 있어요', 'bad');
+      const src = await A.readAs(file, 'readAsDataURL');
+      const stats = await A.imageStats(src);
+      const asset = { id: A.uid('as_'), name: file.name, src, ...stats, kind: slot, created_at: Date.now() };
+      await A.DB.put('assets', asset);
+      assets.set(asset.id, asset);
+      commit((s) => { s.slots[slot].mode = 'image'; s.slots[slot].asset = asset.id; });
+      if (stats.palette.length) A.toast('이미지에서 강조색 후보를 뽑았어요 (배너 패널 아래)');
+    }
+
+    // ---------- 왼쪽 패널 ----------
+    let labelSync = [];
+    function syncLabels() { labelSync.forEach((f) => f()); }
+    function range(label, get, setv, min, max, step, fmt) {
+      const out = h('span', { class: 'num small' });
+      const inp = h('input', { type: 'range', min, max, step, value: get(), 'aria-label': label, oninput: (e) => commitSoft((s) => setv(s, +e.target.value)) });
+      labelSync.push(() => { out.textContent = fmt(get()); });
+      out.textContent = fmt(get());
+      return h('div', { class: 'mini' }, h('span', null, label), h('div', { class: 'row', style: { flexWrap: 'nowrap' } }, inp, out));
+    }
+    const segc = (opts, cur, on) => h('div', { class: 'seg' }, opts.map(([v, l]) => h('button', { class: cur === v ? 'on' : '', onclick: () => on(v) }, l)));
+
+    function slotCard(key) {
+      const sl = st.slots[key];
+      const on = openSlot === key;
+      const asset = sl.asset && assets.get(sl.asset);
+      const card = h('div', { class: 'slot-card' + (on ? ' on' : ''), 'data-slot': key },
+        h('div', { class: 'sh', onclick: () => { openSlot = on ? null : key; drawLeft(); } }, h('div', null, h('b', null, SLOT_INFO[key][0]), h('div', { class: 'tiny muted' }, SLOT_INFO[key][1])), h('span', { class: 'chip' + (sl.mode !== 'none' ? ' accent' : '') }, MODES[sl.mode])));
+      if (!on) return card;
+      const body = h('div', { class: 'slot-body' });
+      body.append(h('div', { class: 'row' }, SLOT_MODES[key].map((m) => h('button', { class: 'chip btnchip' + (sl.mode === m ? ' on' : ''), onclick: () => commit((s) => { s.slots[key].mode = m; }) }, MODES[m]))));
+      if (sl.mode === 'image' || sl.mode === 'library') {
+        const fileIn = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/svg+xml', class: 'hidden', onchange: (e) => addAsset(e.target.files[0], key) });
+        const pv = h('div', { class: 'pv', title: '눌러서 초점 위치 지정', style: asset ? { backgroundImage: `url(${asset.src})`, backgroundPosition: `${sl.fx ?? 50}% ${sl.fy ?? 50}%` } : null },
+          asset && sl.fx != null ? h('i', { style: { left: sl.fx + '%', top: sl.fy + '%' } }) : null);
+        pv.addEventListener('click', (e) => { if (!asset) return; const r = pv.getBoundingClientRect(); commit((s) => { s.slots[key].fx = Math.round((e.clientX - r.left) / r.width * 100); s.slots[key].fy = Math.round((e.clientY - r.top) / r.height * 100); }); });
+        body.append(h('div', { class: 'img-pick' }, pv, h('div', { class: 'stack', style: { gap: '4px' } }, h('button', { class: 'btn sm', onclick: () => fileIn.click() }, asset ? '이미지 바꾸기' : '이미지 올리기'), h('span', { class: 'tiny muted' }, asset ? `${asset.width}×${asset.height}` : 'PNG·JPG·WebP·SVG, 5MB'))), fileIn);
+        const lib = [...assets.values()];
+        if (lib.length) body.append(h('div', null, h('div', { class: 'tiny muted', style: { marginBottom: '4px' } }, '내 라이브러리'), h('div', { class: 'swatches' }, lib.slice(-12).map((a) => h('button', { class: 'sw' + (sl.asset === a.id ? ' on' : ''), title: a.name, style: { width: '44px', backgroundImage: `url(${a.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }, onclick: () => commit((s) => { s.slots[key].asset = a.id; if (s.slots[key].mode === 'library') s.slots[key].mode = 'image'; }) })))));
+        if (key !== 'logo' && key !== 'watermark') body.append(h('div', { class: 'mini' }, h('span', null, '맞춤'), segc([['cover', '채우기'], ['contain', '맞추기'], ['stretch', '늘이기']], sl.fit, (v) => commit((s) => { s.slots[key].fit = v; }))));
+        if (asset?.palette?.length) body.append(h('div', { class: 'mini' }, h('span', null, '강조색 추천'), h('div', { class: 'swatches' }, asset.palette.map((c) => h('button', { class: 'sw', title: c, style: { background: c }, onclick: () => commit((s) => { s.accent = c; }) })))));
+        if (key === 'header' && asset) {
+          const lum = asset.lum;
+          body.append(h('div', { class: 'mini' }, h('span', null, '글자색'), segc([['auto', '자동'], ['light', '흰색'], ['dark', '검정']], sl.textColor, (v) => commit((s) => { s.slots.header.textColor = v; }))));
+          if (sl.textColor === 'auto' && lum > 0.4 && lum < 0.62) body.append(h('div', { class: 'wb-warn' }, '배경 밝기가 중간이라 글자가 잘 안 보일 수 있어요. 글자색을 직접 고르거나 투명도를 낮춰 보세요.'));
+        }
+      }
+      if (key === 'header' && sl.mode !== 'none') {
+        body.append(range('높이', () => st.slots.header.height, (s, v) => (s.slots.header.height = v), 10, 60, 1, (v) => v + 'mm'));
+        body.append(h('div', { class: 'mini' }, h('span', null, '적용 쪽'), h('select', { class: 'input', style: { height: '28px' }, onchange: (e) => commit((s) => { s.slots.header.pages = e.target.value; }) }, [['all', '모든 쪽'], ['first', '첫 쪽만'], ['odd', '홀수 쪽'], ['even', '짝수 쪽']].map(([v, l]) => h('option', { value: v, selected: sl.pages === v }, l)))));
+      }
+      if ((key === 'header' || key === 'cover') && (sl.mode === 'image' || sl.mode === 'library')) body.append(range('불투명도', () => st.slots[key].opacity, (s, v) => (s.slots[key].opacity = v), 0.1, 1, 0.05, (v) => Math.round(v * 100) + '%'));
+      if (key === 'watermark' && sl.mode !== 'none') {
+        body.append(range('불투명도', () => st.slots.watermark.opacity, (s, v) => (s.slots.watermark.opacity = v), 0.02, 0.3, 0.01, (v) => Math.round(v * 100) + '%'));
+        if (sl.mode === 'text') body.append(h('input', { class: 'input', placeholder: '워터마크 글자 (비우면 학원명)', value: sl.text || '', oninput: (e) => commitSoft((s) => { s.slots.watermark.text = e.target.value; }) }));
+      }
+      if (key === 'divider' && sl.mode !== 'none') body.append(range('두께', () => st.slots.divider.height, (s, v) => (s.slots.divider.height = v), 0.6, 8, 0.2, (v) => v.toFixed(1) + 'mm'));
+      card.append(body);
+      return card;
+    }
+
+    function drawLeft() {
+      labelSync = [];
+      left.innerHTML = '';
+      const tabs = h('div', { class: 'wb-tabs', role: 'tablist' }, [['paper', '용지·글꼴'], ['banner', '배너·이미지'], ['brand', '브랜드'], ['preset', '프리셋']].map(([id, l]) => h('button', { class: tab === id ? 'on' : '', role: 'tab', onclick: () => { tab = id; drawLeft(); } }, l)));
+      const p = h('div', { class: 'wb-panel' });
+      if (tab === 'paper') {
+        p.append(
+          h('div', { class: 'wb-sec' }, h('h4', null, '용지'), segc([['A4', 'A4 (210×297)'], ['B4', 'B4 (257×364)']], st.paper, (v) => commit((s) => { s.paper = v; }))),
+          h('div', { class: 'wb-sec' }, h('h4', null, '단'), segc([[1, '1단'], [2, '2단']], st.columns, (v) => commit((s) => { s.columns = v; }))),
+          h('div', { class: 'wb-sec stack', style: { gap: '8px' } }, h('h4', null, '본문'),
+            range('글자 크기', () => st.fontPt, (s, v) => (s.fontPt = v), 8, 13, 0.5, (v) => v + 'pt'),
+            range('줄 간격', () => st.lineSpacing, (s, v) => (s.lineSpacing = v), 1.3, 2.2, 0.05, (v) => Math.round(v * 100) + '%'),
+            range('여백', () => st.margin, (s, v) => (s.margin = v), 8, 25, 1, (v) => v + 'mm')),
+          h('div', { class: 'wb-sec' }, h('h4', null, '목표 쪽수에 맞추기'),
+            h('div', { class: 'row' }, h('input', { class: 'input', type: 'number', min: 1, max: 40, value: Math.max(1, pageCount - 1) || 1, id: 'target-pages', style: { width: '80px' } }), h('span', { class: 'small muted' }, '쪽 이하'),
+              h('button', { class: 'btn sm', onclick: () => fitPages(+left.querySelector('#target-pages').value) }, '자동 맞춤')),
+            h('div', { class: 'tiny muted', style: { marginTop: '6px' } }, '글자 크기 → 줄 간격 → 여백 순서로 허용 범위 안에서 줄여요.')));
+      }
+      if (tab === 'banner') {
+        p.append(h('div', { class: 'tiny muted' }, '미리보기의 머리 배너를 눌러도 여기로 와요. 이미지 파일을 배너 위에 끌어다 놓으면 바로 바뀝니다.'));
+        for (const k of Object.keys(SLOT_INFO)) p.append(slotCard(k));
+      }
+      if (tab === 'brand') {
+        const field = (label, path, ph) => h('div', { class: 'field' }, h('label', null, label), h('input', { class: 'input', value: path.split('.').reduce((a, k) => a[k], st) || '', placeholder: ph || '', oninput: (e) => commitSoft((s) => { const ks = path.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], s)[last] = e.target.value; }) }));
+        p.append(field('학원명', 'brand.academyName'), field('시험지 제목', 'brand.title', '비우면 자료 제목'), field('부제', 'brand.sub', '예: 국어 영역'), field('꼬리말 문구', 'brand.footerText'),
+          h('label', { class: 'row small' }, h('span', { class: 'switch' }, h('input', { type: 'checkbox', checked: st.brand.pageNumbers, onchange: (e) => commit((s) => { s.brand.pageNumbers = e.target.checked; }) }), h('span')), '쪽 번호'),
+          h('div', { class: 'wb-sec' }, h('h4', null, '강조색'), h('div', { class: 'swatches' }, SWATCHES.map((c) => h('button', { class: 'sw' + (st.accent.toLowerCase() === c ? ' on' : ''), style: { background: c }, title: c, onclick: () => commit((s) => { s.accent = c; }) })),
+            h('input', { type: 'color', value: st.accent, oninput: (e) => commitSoft((s) => { s.accent = e.target.value; }), style: { width: '28px', height: '28px', border: 0, padding: 0, background: 'none' } }))));
+      }
+      if (tab === 'preset') {
+        const list = loadPresets();
+        p.append(
+          h('div', { class: 'field' }, h('label', null, '프리셋 이름'), h('input', { class: 'input', value: st.name, oninput: (e) => { st.name = e.target.value; } })),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn primary sm', onclick: () => savePreset(false) }, presetId ? '저장 (새 버전)' : '새 프리셋으로 저장'),
+            presetId ? h('button', { class: 'btn sm', onclick: () => savePreset(true) }, '다른 이름으로') : null),
+          h('div', { class: 'wb-sec' }, h('h4', null, `저장된 프리셋 ${list.length}개`),
+            list.length ? list.map((pr) => h('div', { class: 'slot-card' + (pr.id === presetId ? ' on' : ''), style: { marginBottom: '6px' } },
+              h('div', { class: 'row' }, h('b', { class: 'small' }, pr.name), pr.is_default ? h('span', { class: 'chip accent' }, '기본') : null, h('span', { class: 'spacer' }), h('span', { class: 'tiny muted' }, 'v' + pr.version)),
+              h('div', { class: 'row' },
+                h('button', { class: 'btn sm', onclick: () => { undo.push(JSON.stringify(st)); st = A.deepMerge(defaults(), A.clone(pr.state)); presetId = pr.id; drawLeft(); drawPreview(); } }, '불러오기'),
+                h('button', { class: 'btn sm', onclick: () => { const l = loadPresets(); l.forEach((x) => (x.is_default = x.id === pr.id)); savePresets(l); drawLeft(); } }, '기본으로'),
+                pr.versions?.length ? h('select', { class: 'input', style: { height: '26px', fontSize: '12px' }, onchange: (e) => { const v = pr.versions.find((x) => String(x.version) === e.target.value); if (v) { undo.push(JSON.stringify(st)); st = A.deepMerge(defaults(), A.clone(v.state)); drawLeft(); drawPreview(); A.toast(`v${v.version}로 되돌렸어요 (저장하면 새 버전)`); } } }, h('option', null, '이전 버전'), pr.versions.map((v) => h('option', { value: v.version }, `v${v.version} · ${A.fmtDate(v.at)}`))) : null,
+                h('span', { class: 'spacer' }),
+                h('button', { class: 'btn sm ghost danger', onclick: () => { savePresets(loadPresets().filter((x) => x.id !== pr.id)); if (presetId === pr.id) presetId = null; drawLeft(); } }, '삭제')))) : h('div', { class: 'small muted' }, '아직 없어요.')));
+      }
+      left.append(tabs, p);
+    }
+    function savePreset(asNew) {
+      const list = loadPresets();
+      let pr = !asNew && presetId && list.find((x) => x.id === presetId);
+      if (pr) { pr.versions = [{ version: pr.version, at: pr.updated_at, state: pr.state }, ...(pr.versions || [])].slice(0, 20); pr.version++; pr.state = A.clone(st); pr.name = st.name; pr.updated_at = Date.now(); }
+      else { pr = { id: A.uid('pr_'), name: asNew ? st.name + ' 사본' : st.name, version: 1, state: A.clone(st), versions: [], is_default: !list.length, updated_at: Date.now() }; list.push(pr); presetId = pr.id; }
+      savePresets(list);
+      A.toast(`"${pr.name}" v${pr.version} 저장`);
+      drawLeft();
+    }
+
+    // ---------- 미리보기 ----------
+    function blocksFrom() {
+      let lines, title;
+      if (sourceId !== 'sample') {
+        const d = docs.find((x) => x.id === sourceId);
+        if (d) { title = d.title; return { title, st: d.structure }; }
+      }
+      lines = SAMPLE.flatMap((t, i) => (i === 1 || i === 17 ? [{ gid: 'S' + i, text: '__PASSAGE__' + i }] : t.split('\n').length > 1 ? [{ gid: 'S' + i, text: '__PASSAGE__' + i }] : [{ gid: 'S' + i, text: t }]));
+      const s = A.structure.ruleStructure(lines);
+      for (const set of s.sets) set.passage = set.passage.split('\n').map((x) => (x.startsWith('__PASSAGE__') ? SAMPLE[+x.slice(11)] : x)).join('\n');
+      return { title: '샘플 · 2학년 중간고사 대비', st: s };
+    }
+    function textColorFor(sl, asset) {
+      if (sl.mode === 'text') return '#18181b';
+      if (sl.mode === 'auto') return '#ffffff';
+      if (sl.textColor === 'light') return '#ffffff';
+      if (sl.textColor === 'dark') return '#18181b';
+      return asset && asset.lum * sl.opacity + (1 - sl.opacity) * 1 > 0.55 ? '#18181b' : '#ffffff';
+    }
+    function bgSize(fit) { return fit === 'contain' ? 'contain' : fit === 'stretch' ? '100% 100%' : 'cover'; }
+    function headerApplies(i) { const p = st.slots.header.pages; return p === 'all' || (p === 'first' && i === 0) || (p === 'odd' && i % 2 === 0) || (p === 'even' && i % 2 === 1); }
+
+    function makeSheet(i, title, total) {
+      const [wmm, hmm] = PAPER[st.paper];
+      const sheet = h('div', { class: 'sheet', style: { width: wmm * MM + 'px', height: hmm * MM + 'px', padding: `${st.margin * MM}px`, fontSize: st.fontPt + 'pt', lineHeight: st.lineSpacing } });
+      const hs = st.slots.header;
+      if (hs.mode !== 'none' && headerApplies(i)) {
+        const asset = hs.asset && assets.get(hs.asset);
+        const isImg = (hs.mode === 'image' || hs.mode === 'library') && asset;
+        const color = textColorFor(hs, asset);
+        const hdr = h('div', { class: 'hdr', title: '눌러서 배너 바꾸기 · 이미지를 끌어다 놓으면 교체', style: { height: hs.height * MM + 'px', marginBottom: 4 * MM + 'px', color, textShadow: isImg && color === '#ffffff' ? '0 1px 3px rgba(0,0,0,.55)' : 'none', background: hs.mode === 'auto' ? st.accent : 'transparent', borderBottom: hs.mode === 'text' ? `0.8mm solid ${st.accent}` : 'none', borderRadius: hs.mode === 'auto' || isImg ? '1.5mm' : '0' } },
+          isImg ? h('div', { class: 'tint', style: { backgroundImage: `url(${asset.src})`, backgroundSize: bgSize(hs.fit), backgroundPosition: `${hs.fx}% ${hs.fy}%`, backgroundRepeat: 'no-repeat', opacity: hs.opacity, borderRadius: '1.5mm' } }) : null,
+          h('div', null, h('div', { class: 'ht' }, st.brand.title || title), h('div', { class: 'hs' }, [st.brand.academyName, st.brand.sub].filter(Boolean).join(' · '))),
+          logoEl() || h('div', { class: 'hs pnum' }, `${i + 1} / ${total || '?'}`),
+          h('span', { class: 'hdr-hint' }, '클릭·끌어다 놓기로 교체'));
+        hdr.addEventListener('click', () => { tab = 'banner'; openSlot = 'header'; drawLeft(); });
+        hdr.addEventListener('dragover', (e) => { e.preventDefault(); hdr.classList.add('drop-over'); });
+        hdr.addEventListener('dragleave', () => hdr.classList.remove('drop-over'));
+        hdr.addEventListener('drop', (e) => { e.preventDefault(); hdr.classList.remove('drop-over'); addAsset(e.dataTransfer.files[0], 'header'); });
+        sheet.append(hdr);
+      }
+      const wm = st.slots.watermark;
+      if (wm.mode !== 'none') {
+        const a = wm.asset && assets.get(wm.asset);
+        sheet.append(h('div', { class: 'wm', style: { opacity: wm.opacity } }, (wm.mode === 'image' || wm.mode === 'library') && a ? h('img', { src: a.src, alt: '' }) : wm.mode === 'text' ? h('span', null, wm.text || st.brand.academyName) : null));
+      }
+      const body = h('div', { class: 'body', style: { gridTemplateColumns: `repeat(${st.columns}, 1fr)`, columnGap: 7 * MM + 'px' } });
+      const cols = Array.from({ length: st.columns }, () => h('div', { class: 'colm' }));
+      body.append(...cols);
+      sheet.append(body);
+      if (st.slots.footer.mode !== 'none') sheet.append(h('div', { class: 'ftr', style: { marginTop: 3 * MM + 'px' } }, h('span', null, [st.brand.academyName, st.brand.footerText].filter(Boolean).join(' · ')), st.brand.pageNumbers ? h('span', { class: 'pn' }, String(i + 1)) : h('span')));
+      return { sheet, cols };
+    }
+    function logoEl() {
+      const lg = st.slots.logo; const a = lg.asset && assets.get(lg.asset);
+      return lg.mode !== 'none' && a ? h('img', { class: 'logo-img', src: a.src, alt: '로고' }) : null;
+    }
+    function coverSheet(title) {
+      const cv = st.slots.cover; const [wmm, hmm] = PAPER[st.paper];
+      const a = cv.asset && assets.get(cv.asset);
+      const isImg = (cv.mode === 'image' || cv.mode === 'library') && a;
+      const dark = isImg ? a.lum * cv.opacity + (1 - cv.opacity) < 0.55 : false;
+      return h('div', { class: 'sheet cover', style: { width: wmm * MM + 'px', height: hmm * MM + 'px', color: isImg ? (dark ? '#fff' : '#18181b') : '#18181b' } },
+        h('div', { class: 'cv-bg', style: isImg ? { backgroundImage: `url(${a.src})`, backgroundSize: bgSize(cv.fit), backgroundPosition: `${cv.fx}% ${cv.fy}%`, opacity: cv.opacity } : { background: `linear-gradient(${st.accent}, ${st.accent}) bottom / 100% 38% no-repeat` } }),
+        h('div', { class: 'cv-in' }, h('h1', null, st.brand.title || title), h('p', null, [st.brand.academyName, st.brand.sub].filter(Boolean).join(' · ')), logoEl()));
+    }
+    // OCR 줄바꿈은 화면상 줄일 뿐: 운문은 줄을 살리고, 산문·독서는 문장으로 이어 붙임
+    function flowText(s) {
+      if (s.domain === 'POETRY' || !s.passage_refs || !s.passage_refs.length || s.passage_refs[0].startsWith('S')) return s.passage;
+      return s.passage.split('\n').reduce((acc, line) => (!acc ? line : /[.?!”"」]$/.test(acc) ? acc + '\n' + line : acc + (/[가-힣]$/.test(acc) && /^[가-힣]/.test(line) ? '' : ' ') + line), '');
+    }
+    function blockEls(sst) {
+      const out = [];
+      let lastSet = -1;
+      const div = st.slots.divider; const da = div.asset && assets.get(div.asset);
+      sst.items.forEach((it) => {
+        const parts = [];
+        if (it.set != null && it.set !== lastSet) {
+          const s = sst.sets[it.set];
+          lastSet = it.set;
+          const setBlk = h('div', { class: 'blk' },
+            div.mode !== 'none' ? h('div', { class: 'divider', style: { height: div.height + 'mm', background: (div.mode === 'image' || div.mode === 'library') && da ? `url(${da.src}) center / cover` : st.accent } }) : null,
+            h('div', { class: 'setline' }, s.header || ''), s.passage ? h('div', { class: 'passage' }, flowText(s)) : null);
+          out.push({ el: setBlk, label: `${s.header || '지문'}` });
+        }
+        parts.push(h('div', { class: 'q' }, h('span', { class: 'qn' }, it.number + '.'), it.stem));
+        if (it.boogi) parts.push(h('div', { class: 'bg' }, h('div', { style: { textAlign: 'center', fontWeight: 700 } }, '< 보 기 >'), it.boogi));
+        parts.push(h('div', { class: 'chs' }, [1, 2, 3, 4, 5].filter((k) => it.choices[k]).map((k) => h('div', null, `${A.structure.CH[k - 1]} ${it.choices[k]}`))));
+        out.push({ el: h('div', { class: 'blk' }, parts), label: `${it.number}번 문항` });
+      });
+      return out;
+    }
+
+    let sheets = [];
+    function layout(container) {
+      const { title, st: sst } = blocksFrom();
+      warnings = [];
+      sheets = [];
+      const wraps = [];
+      const [wmm, hmm] = PAPER[st.paper];
+      const addWrap = (sheet) => { const w = h('div', { class: 'sheet-wrap', style: { width: wmm * MM * zoom + 'px', height: hmm * MM * zoom + 'px' } }, h('div', { class: 'sheet-scale', style: { transform: `scale(${zoom})` } }, sheet)); container.append(w); wraps.push(w); sheets.push(sheet); };
+      if (st.slots.cover.mode !== 'none') addWrap(coverSheet(title));
+      let idx = 0, cur = makeSheet(idx, title), col = 0;
+      addWrap(cur.sheet);
+      const fits = (c) => c.scrollHeight <= c.clientHeight + 1;
+      for (const b of blockEls(sst)) {
+        cur.cols[col].append(b.el);
+        if (fits(cur.cols[col])) continue;
+        if (cur.cols[col].children.length > 1) {
+          b.el.remove();
+          col++;
+          if (col >= st.columns) { idx++; cur = makeSheet(idx, title); col = 0; addWrap(cur.sheet); }
+          cur.cols[col].append(b.el);
+        }
+        if (!fits(cur.cols[col])) warnings.push(`${b.label}이(가) 한 단보다 길어 잘려요. 글자 크기를 줄이거나 1단으로 바꿔 보세요.`);
+      }
+      const total = sheets.length - (st.slots.cover.mode !== 'none' ? 1 : 0);
+      sheets.forEach((s) => s.querySelectorAll('.pnum').forEach((x) => { x.textContent = x.textContent.replace('?', total); }));
+      return { title, total };
+    }
+    function drawPreview() {
+      center.innerHTML = '';
+      const canvas = h('div', { class: 'wb-canvas' });
+      const sel = h('select', { class: 'input', style: { height: '30px', maxWidth: '260px' }, 'aria-label': '미리보기 내용', onchange: (e) => { sourceId = e.target.value; drawPreview(); } },
+        h('option', { value: 'sample', selected: sourceId === 'sample' }, '샘플 시험지'), docs.map((d) => h('option', { value: d.id, selected: sourceId === d.id }, `자료함: ${d.title}`)));
+      const tb = h('div', { class: 'wb-toolbar' },
+        h('span', { class: 'small muted' }, '미리보기'), sel,
+        h('button', { class: 'btn sm icon-btn', title: '실행 취소 (Ctrl+Z)', disabled: !undo.length, onclick: doUndo, html: icon('undo') }),
+        h('button', { class: 'btn sm icon-btn', title: '다시 실행 (Ctrl+Y)', disabled: !redo.length, onclick: doRedo, html: icon('redo') }),
+        h('button', { class: 'btn sm', onclick: () => { zoom = Math.max(0.3, +(zoom - 0.1).toFixed(2)); drawPreview(); } }, '−'),
+        h('span', { class: 'small num' }, Math.round(zoom * 100) + '%'),
+        h('button', { class: 'btn sm', onclick: () => { zoom = Math.min(1.2, +(zoom + 0.1).toFixed(2)); drawPreview(); } }, '+'),
+        h('span', { class: 'spacer' }),
+        h('span', { class: 'small', id: 'pc' }),
+        h('button', { class: 'btn sm primary', onclick: printAll, html: icon('printer') + 'PDF로 인쇄' }));
+      center.append(tb, canvas);
+      const { total } = layout(canvas);
+      pageCount = total;
+      tb.querySelector('#pc').innerHTML = `${total}쪽` + (warnings.length ? ` · <span class="wb-warn">경고 ${warnings.length}</span>` : ' · 잘린 문항 없음');
+      if (warnings.length) canvas.prepend(h('div', { class: 'card', style: { padding: '10px 14px', maxWidth: '720px' } }, warnings.map((w) => h('div', { class: 'wb-warn' }, w))));
+      drawThumbs();
+    }
+    function drawThumbs() {
+      right.innerHTML = '';
+      sheets.forEach((s, i) => {
+        const w = s.offsetWidth, hh = s.offsetHeight, sc = 96 / w;
+        const tb = h('div', { class: 'tb', style: { width: w * sc + 'px', height: hh * sc + 'px' } }, h('div', { style: { transform: `scale(${sc})`, transformOrigin: 'top left' } }, s.cloneNode(true)));
+        right.append(h('div', { class: 'thumbw' + (i === curPage ? ' on' : ''), 'aria-hidden': 'true', onclick: () => { curPage = i; s.parentElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' }); drawThumbsSel(); } }, tb, h('div', null, s.classList.contains('cover') ? '표지' : `${i + 1 - (st.slots.cover.mode !== 'none' ? 1 : 0)}쪽`)));
+      });
+    }
+    function drawThumbsSel() { [...right.children].forEach((c, i) => c.classList.toggle('on', i === curPage)); }
+
+    function fitPages(target) {
+      if (!target || pageCount <= target) return A.toast(pageCount <= target ? `이미 ${pageCount}쪽이에요` : '목표 쪽수를 넣어 주세요');
+      undo.push(JSON.stringify(st));
+      const tries = [];
+      for (let f = st.fontPt; f >= 8; f -= 0.5) for (const ls of [st.lineSpacing, 1.55, 1.45, 1.35].filter((x) => x <= st.lineSpacing)) for (const m of [st.margin, 12, 10].filter((x) => x <= st.margin)) tries.push([f, ls, m]);
+      const probe = h('div', { style: { position: 'absolute', left: '-99999px', top: 0 } });
+      document.body.append(probe);
+      let ok = null;
+      const saved = A.clone(st);
+      for (const [f, ls, m] of tries) {
+        st.fontPt = f; st.lineSpacing = ls; st.margin = m;
+        probe.innerHTML = '';
+        const r = layout(probe);
+        if (r.total <= target && !warnings.length) { ok = [f, ls, m]; break; }
+      }
+      probe.remove();
+      if (!ok) { st = saved; undo.pop(); drawPreview(); return A.toast('허용 범위(8pt) 안에서는 맞출 수 없어요. 1단↔2단이나 용지를 바꿔 보세요', 'bad'); }
+      drawLeft(); drawPreview();
+      A.toast(`${ok[0]}pt · 줄 간격 ${Math.round(ok[1] * 100)}% · 여백 ${ok[2]}mm로 ${pageCount}쪽에 맞췄어요`);
+    }
+    function printAll() {
+      const pr = document.getElementById('print-root');
+      pr.innerHTML = '';
+      pr.setAttribute('aria-hidden', 'true');
+      const [wmm, hmm] = PAPER[st.paper];
+      pr.append(h('style', null, `@page { size: ${wmm}mm ${hmm}mm; margin: 0 }`));
+      sheets.forEach((s) => { const c = s.cloneNode(true); c.style.boxShadow = 'none'; pr.append(c); });
+      window.print();
+    }
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
+      if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) { e.preventDefault(); doRedo(); }
+      if (e.key.toLowerCase() === 's') { e.preventDefault(); savePreset(false); }
+    };
+    document.addEventListener('keydown', onKey);
+    A.design = { get state() { return st; }, commit, addAsset, fitPages, pageCount: () => pageCount, warnings: () => warnings };
+    drawLeft();
+    await (document.fonts?.ready || Promise.resolve());
+    drawPreview();
+    return { cleanup: () => { document.removeEventListener('keydown', onKey); delete A.design; } };
+  });
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 설정 (요청 11: 왼쪽 내비 + 저장 바 하나 + 변경 표시 + 기록) */
+(function (A) {
+  'use strict';
+  const { h, esc } = A;
+  const SECTIONS = [
+    ['account', '계정'], ['brand', '학원 브랜드'], ['output', '출력 기본값'], ['annotation', '주석 기본값'],
+    ['ocr', 'OCR·AI'], ['agent', 'API·에이전트'], ['notify', '알림'], ['history', '변경 기록'], ['danger', '데이터 관리'],
+  ];
+  const get = (o, path) => path.split('.').reduce((a, k) => a?.[k], o);
+  const set = (o, path, v) => { const ks = path.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
+
+  A.route('settings', (view, params) => {
+    let saved = A.Settings.get();
+    let draft = A.clone(saved);
+    const root = h('div');
+    view.append(root);
+    const changedPaths = () => {
+      const out = [];
+      (function walk(a, b, p) {
+        for (const k of Object.keys(b)) {
+          const path = p ? p + '.' + k : k;
+          if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) walk(a?.[k] || {}, b[k], path);
+          else if (JSON.stringify(a?.[k]) !== JSON.stringify(b[k])) out.push(path);
+        }
+      })(saved, draft, '');
+      return out;
+    };
+
+    function row(path, title, desc, control) {
+      const r = h('div', { class: 's-row', 'data-path': path }, h('div', null, h('b', null, title), desc ? h('span', null, desc) : null), h('div', { class: 'ctl' }, control));
+      r.querySelectorAll('.switch, .ctl > input, .ctl > select, .ctl > .seg').forEach((el) => el.setAttribute('aria-label', title));
+      return r;
+    }
+    const toggle = (path) => h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: !!get(draft, path), onchange: (e) => update(path, e.target.checked) }), h('span'));
+    const text = (path, ph, type = 'text') => h('input', { class: 'input', type, value: get(draft, path) ?? '', placeholder: ph || '', style: { width: '100%' }, oninput: (e) => update(path, type === 'number' ? +e.target.value : e.target.value) });
+    const select = (path, opts) => h('select', { class: 'input', onchange: (e) => update(path, isNaN(+e.target.value) ? e.target.value : +e.target.value) }, opts.map(([v, l]) => h('option', { value: v, selected: String(get(draft, path)) === String(v) }, l)));
+    const seg = (path, opts) => h('div', { class: 'seg' }, opts.map(([v, l]) => h('button', { class: get(draft, path) === v ? 'on' : '', onclick: () => { update(path, v); draw(); } }, l)));
+
+    function update(path, v) { set(draft, path, v); refreshBar(); }
+    function refreshBar() {
+      const ch = changedPaths();
+      root.querySelectorAll('.s-row').forEach((r) => r.classList.toggle('changed', ch.some((p) => p === r.dataset.path || p.startsWith(r.dataset.path + '.'))));
+      const bar = root.querySelector('.savebar');
+      if (bar) { bar.classList.toggle('show', ch.length > 0); bar.querySelector('.cnt').textContent = `변경 ${ch.length}개`; }
+    }
+
+    function chainEditor() {
+      const order = draft.ocr.chain;
+      const list = h('div', { class: 'chain-list' });
+      order.forEach((e, i) => {
+        const off = draft.ocr.disabled.includes(e);
+        list.append(h('div', { class: 'chain-item', style: off ? { opacity: .5 } : null },
+          h('span', { class: 'i' }, i + 1), h('span', { style: { flex: 1 } }, A.ENGINE_LABEL[e], e === 'gemini' && !draft.ai.geminiKey ? h('span', { class: 'muted tiny' }, '  키 없으면 건너뜀') : null),
+          h('button', { class: 'btn sm ghost', disabled: i === 0, 'aria-label': '위로', onclick: () => { const a = order.slice(); [a[i - 1], a[i]] = [a[i], a[i - 1]]; update('ocr.chain', a); draw(); } }, '↑'),
+          h('button', { class: 'btn sm ghost', disabled: i === order.length - 1, 'aria-label': '아래로', onclick: () => { const a = order.slice(); [a[i + 1], a[i]] = [a[i], a[i + 1]]; update('ocr.chain', a); draw(); } }, '↓'),
+          e === 'manual' ? h('span', { class: 'tiny muted' }, '항상 마지막') : h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: !off, onchange: (ev) => { const d = new Set(draft.ocr.disabled); ev.target.checked ? d.delete(e) : d.add(e); update('ocr.disabled', [...d]); draw(); } }), h('span'))));
+      });
+      return list;
+    }
+
+    function draw() {
+      root.innerHTML = '';
+      const hist = A.Settings.history();
+      const sec = (id, title, desc, ...rows) => h('section', { class: 's-sec', id: 's-' + id }, h('h2', null, title), h('p', null, desc), h('div', { class: 's-group' + (id === 'danger' ? ' danger-zone' : '') }, rows));
+      const content = h('div', null,
+        sec('account', '계정', '자료와 작업 기록에 표시할 정보입니다.',
+          row('account.name', '이름', '자료 머리말과 작업 기록에 표시', text('account.name', '예: 홍길동')),
+          row('account.email', '이메일', '작업 완료 알림 받을 주소', text('account.email', 'name@example.com', 'email'))),
+        sec('brand', '학원 브랜드', '모든 출력물에 기본으로 들어가는 정보입니다.',
+          row('brand.academyName', '학원명', '머리 배너·꼬리말 기본 문구', text('brand.academyName')),
+          row('brand.footerText', '꼬리말 문구', '예: 수업용 자체 제작 자료', text('brand.footerText')),
+          row('brand.accent', '강조색', '화면과 출력물의 기본 색', h('div', { class: 'row' }, h('input', { type: 'color', value: draft.brand.accent, oninput: (e) => update('brand.accent', e.target.value), style: { width: '40px', height: '32px', border: '0', background: 'none' } }), h('code', { class: 'small' }, draft.brand.accent)))),
+        sec('output', '출력 기본값', '문제지·교재를 출력할 때 먼저 적용됩니다. 출력할 때 바꿀 수도 있어요.',
+          row('output.paper', '기본 용지', '', seg('output.paper', [['A4', 'A4'], ['B4', 'B4']])),
+          row('output.answerPlacement', '정답 위치', '문항 뒤 미주 또는 시험지 끝', seg('output.answerPlacement', [['inline', '문항 뒤'], ['end', '시험지 끝']])),
+          row('output.quickAnswers', '빠른 정답', '해설 앞에 한 줄 5문항 정답표', toggle('output.quickAnswers')),
+          row('output.promptTitles', '유형 제목 표시', '문제 묶음 앞에 유형명', toggle('output.promptTitles'))),
+        sec('annotation', '주석 기본값', '주석 달기와 주석교재의 시작값입니다.',
+          row('annotation.density', '필기량', '1 핵심만 ~ 5 촘촘 · 바꿔도 다시 생성하지 않아요', select('annotation.density', [[1, '1 핵심만'], [2, '2 간결'], [3, '3 보통'], [4, '4 풍부'], [5, '5 촘촘']])),
+          row('annotation.layout', '레이아웃', '', seg('annotation.layout', [['wing', '날개형'], ['note', '노트형'], ['blank', '빈칸형']])),
+          row('annotation.autoHighlight', '형광펜 자동 표시', '주석이 붙은 구절에 색 밑줄', toggle('annotation.autoHighlight'))),
+        sec('ocr', 'OCR·AI', '쪽마다 위에서부터 시도하고, 저작권 차단·잘림·품질 낮음이면 다음 엔진으로 넘어갑니다.',
+          row('ocr.chain', '글자 읽기 대체 순서', 'PDF 글자 레이어·HWPX는 항상 먼저 직접 읽음(비용 0)', chainEditor()),
+          row('ocr.lowConf', '의심 줄 기준', '신뢰도가 이보다 낮으면 교정 화면에서 노란색', select('ocr.lowConf', [[60, '60'], [70, '70'], [80, '80'], [90, '90']])),
+          row('ocr.enhance', '사진 자동 보정', '회색조·명암 늘리기', toggle('ocr.enhance')),
+          row('ai.geminiKey', 'Gemini API 키', '넣으면 Gemini 판독·참조형 구조화·AI 주석이 켜집니다. 이 브라우저에만 저장되니 공용 컴퓨터에서는 넣지 마세요.', text('ai.geminiKey', 'AIza…', 'password')),
+          row('ai.model', '모델', '', text('ai.model'))),
+        sec('agent', 'API·에이전트', '화면에서 하는 모든 일은 같은 계약의 API로도 할 수 있습니다.',
+          row('agent.api', '브라우저 API', '에이전트가 이 페이지에서 바로 호출', h('code', { class: 'small' }, 'window.App.api')),
+          row('agent.keys', 'API 키 · 월 사용 한도', '키별 권한과 월 한도, 즉시 폐기', h('span', { class: 'chip' }, '준비 중')),
+          row('agent.mcp', 'MCP 도구', 'quote, ocr_document, analyze_exam, annotate_passage, build_exam, render_document', h('span', { class: 'chip' }, '준비 중'))),
+        sec('notify', '알림', '',
+          row('notify.jobDone', '작업 완료 알림', '작업 큐의 작업이 끝나면 화면 아래에 표시', toggle('notify.jobDone'))),
+        sec('history', '변경 기록', '저장할 때마다 무엇이 바뀌었는지 남깁니다.',
+          hist.length ? hist.slice(0, 8).map((e) => h('div', { class: 's-row' }, h('div', null, h('b', null, A.fmtDate(e.at)), h('span', null, e.diff.map((d) => `${d.path}: ${JSON.stringify(d.from)} → ${JSON.stringify(d.to)}`).join(' · '))), h('div'))) : h('div', { class: 's-row' }, h('div', null, h('span', null, '아직 기록이 없어요.')), h('div'))),
+        sec('danger', '데이터 관리', '자료는 이 브라우저에만 있습니다. 브라우저 기록을 지우면 사라지니 자주 백업하세요.',
+          row('danger.backup', '전체 내보내기', A.Backup.last() ? '마지막 백업: ' + A.fmtDate(A.Backup.last()) : '아직 백업한 적이 없어요', h('button', { class: 'btn sm', onclick: async () => { await A.Backup.export(); draw(); } }, '백업 파일 받기')),
+          row('danger.restore', '파일에서 복원', '백업 파일의 자료를 이 브라우저에 더합니다', restoreButton()),
+          row('danger.lib', '자료함 비우기', '이 브라우저에 저장한 시험지·주석·설계도를 모두 삭제', h('button', { class: 'btn sm danger', onclick: wipeAll }, '모두 삭제')),
+          row('danger.reset', '설정 초기화', '모든 설정을 처음 값으로', h('button', { class: 'btn sm danger', onclick: () => { draft = A.Settings.defaults(); draw(); refreshBar(); } }, '초기화'))),
+        h('div', { class: 'savebar', role: 'region', 'aria-label': '저장 바' },
+          h('span', { class: 'cnt' }, ''),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn', onclick: () => { draft = A.clone(saved); draw(); } }, '되돌리기'),
+            h('button', { class: 'btn primary', onclick: () => { const diff = A.Settings.save(draft); saved = A.Settings.get(); draft = A.clone(saved); A.toast(`설정 ${diff.length}개를 저장했어요`); draw(); } }, '저장'))));
+      const nav = h('nav', { class: 's-nav', 'aria-label': '설정 구역' }, SECTIONS.map(([id, label]) => h('a', { href: '#/settings?s=' + id, 'data-s': id, onclick: (e) => { e.preventDefault(); history.replaceState(null, '', '#/settings?s=' + id); jump(id); } }, label)));
+      root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, '설정'), h('p', null, '바꾼 항목은 "변경됨"으로 표시되고, 아래 저장 바에서 한 번에 저장합니다.'))),
+        h('div', { class: 'settings' }, nav, content));
+      refreshBar();
+    }
+    function restoreButton() {
+      const inp = h('input', { type: 'file', accept: '.json,application/json', class: 'hidden', onchange: async (e) => {
+        const f = e.target.files[0]; e.target.value = '';
+        if (!f) return;
+        try { const n = await A.Backup.restore(f); saved = A.Settings.get(); draft = A.clone(saved); A.toast('자료 ' + n + '개를 복원했어요'); draw(); } catch (err) { A.toast(err.message, 'bad'); }
+      } });
+      return h('span', null, inp, h('button', { class: 'btn sm', onclick: () => inp.click() }, '백업 파일 고르기'));
+    }
+    async function wipeAll() {
+      const c = await A.Backup.counts();
+      const total = Object.values(c).reduce((a, b) => a + b, 0);
+      if (!total) return A.toast('지울 자료가 없어요');
+      if (confirm('자료 ' + total + '개를 지우기 전에 백업 파일을 받을까요?')) await A.Backup.export();
+      const typed = prompt('자료 ' + total + '개를 모두 지웁니다. 되돌릴 수 없어요. 계속하려면 삭제 두 글자를 입력하세요.');
+      if ((typed || '').trim() !== '삭제') return A.toast('삭제를 취소했어요');
+      await A.Backup.wipe();
+      A.toast('자료함을 비웠어요');
+    }
+    function jump(id) {
+      const el = root.querySelector('#s-' + id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      root.querySelectorAll('.s-nav a').forEach((a) => a.classList.toggle('on', a.dataset.s === id));
+    }
+    draw();
+    const onScroll = () => {
+      let on = SECTIONS[0][0];
+      for (const [id] of SECTIONS) { const el = root.querySelector('#s-' + id); if (el && el.getBoundingClientRect().top < 160) on = id; }
+      root.querySelectorAll('.s-nav a').forEach((a) => a.classList.toggle('on', a.dataset.s === on));
+    };
+    view.addEventListener('scroll', onScroll);
+    setTimeout(() => (params.s ? jump(params.s) : onScroll()), 50);
+    return { cleanup: () => view.removeEventListener('scroll', onScroll) };
+  });
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - 시작 */
+(function (A) {
+  'use strict';
+  A.buildNav();
+  A.applyTheme();
+  A.$('#theme-btn').addEventListener('click', A.toggleTheme);
+  A.$('#cmd-open').addEventListener('click', A.openPalette);
+  A.$('#jobs-btn').addEventListener('click', () => A.toggleDrawer());
+  A.$('#drawer-close').addEventListener('click', () => A.toggleDrawer(false));
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); A.openPalette(); }
+  });
+  A.Jobs.on(A.renderJobs);
+  A.renderJobs();
+  window.addEventListener('hashchange', A.renderRoute);
+
+  // 에이전트용 공개 API: 화면과 같은 계약 (서버 단계의 /v1/jobs 와 같은 모양)
+  A.api = {
+    version: '0.1-local',
+    routes: () => A.NAV.filter((n) => n.id).map((n) => ({ id: n.id, label: n.label, url: '#/' + n.id })),
+    listJobs: () => A.Jobs.list.map(({ id, kind, title, status, stage, progress, created_at }) => ({ id, kind, title, status, stage, progress, created_at })),
+    getJob: (id) => A.Jobs.get(id),
+    listDocuments: () => A.DB.all('documents').then((ds) => ds.map((d) => ({ id: d.id, title: d.title, mode: d.mode, pages: d.pages.length, items: d.structure?.items?.length || 0 }))),
+    getDocument: (id) => A.DB.get('documents', id),
+    settings: () => { const s = A.Settings.get(); return { ...s, ai: { ...s.ai, geminiKey: s.ai.geminiKey ? '••••' : '' } }; },
+  };
+
+  if (!location.hash) location.hash = '#/exam';
+  A.renderRoute();
+})(window.App);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>국어 스튜디오 · 비해당학원</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="css/app.css">
+<!-- 외부 라이브러리 (설치 없이 CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="주 메뉴">
+    <div class="brand"><div class="logo">비</div><div><b>국어 스튜디오</b><span>비해당학원</span></div></div>
+    <button class="cmd-btn" id="cmd-open" aria-label="작업 요청창 열기"><span>작업 요청…</span><kbd>Ctrl K</kbd></button>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot"><span>로컬 시연판 · 데이터는 이 브라우저에만 저장</span><button class="btn ghost icon-btn" id="theme-btn" aria-label="화면 테마 전환" title="화면 테마 전환"></button></div>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <div class="crumb" id="crumb"></div>
+      <div class="top-r">
+        <button class="btn ghost jobs-btn" id="jobs-btn" aria-label="작업 큐 열기"></button>
+      </div>
+    </header>
+    <section class="view" id="view" tabindex="-1"></section>
+  </main>
+</div>
+<aside class="drawer" id="drawer" aria-label="작업 큐">
+  <div class="drawer-h"><b>작업 큐</b><button class="btn ghost sm" id="drawer-close">닫기</button></div>
+  <div class="drawer-b" id="drawer-b"></div>
+</aside>
+<div class="toast-wrap" id="toasts"></div>
+<div id="print-root" aria-hidden="true"></div>
+
+<script src="js/core.js"></script>
+<script src="js/ocr.js"></script>
+<script src="js/structure.js"></script>
+<script src="js/view-exam.js"></script>
+<script src="js/view-library.js"></script>
+<script src="js/view-annotate.js"></script>
+<script src="js/view-build.js"></script>
+<script src="js/view-design.js"></script>
+<script src="js/view-settings.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

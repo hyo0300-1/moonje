@@ -1,0 +1,6 @@
+docs/
+supabase/
+dev-server.js
+dev-server.log
+start-dev.cmd
+*.cmd
