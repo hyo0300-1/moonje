@@ -138,7 +138,7 @@ ${doc.text}`;
             h('div', { class: 'field' }, h('label', null, '제목'), h('input', { class: 'input', value: doc.title || '', oninput: (e) => (doc.title = e.target.value) })),
             h('div', { class: 'field' }, h('label', null, '작가'), h('input', { class: 'input', value: doc.author || '', oninput: (e) => (doc.author = e.target.value) }))),
           h('div', { class: 'field' }, h('label', null, '갈래'), h('select', { class: 'input', onchange: (e) => { doc.genre = e.target.value; rerun(); } }, ['현대시', '고전 시가', '소설', '비문학'].map((g) => h('option', { selected: doc.genre === g }, g)))),
-          h('div', { class: 'field' }, h('label', null, '원문'), h('textarea', { class: 'input', rows: 14, 'aria-label': '원문', oninput: (e) => { doc.text = e.target.value; clearTimeout(doc._t); doc._t = setTimeout(() => { doc.genre = detectGenre(doc.text); rerun(); }, 600); } }, doc.text)),
+          h('div', { class: 'field' }, h('label', null, '원문'), h('textarea', { class: 'input', rows: 14, 'aria-label': '원문', oninput: (e) => { doc.text = e.target.value; if (doc.text !== SAMPLE.text) { if (doc.author === SAMPLE.author) doc.author = ''; if (doc.title === SAMPLE.title) doc.title = ''; } clearTimeout(doc._t); doc._t = setTimeout(() => { doc.genre = detectGenre(doc.text); rerun(); }, 600); } }, doc.text)),
           h('div', { class: 'row' },
             h('button', { class: 'btn', onclick: rerun }, '사전 주석 다시'),
             A.llm.ready('annotate')
