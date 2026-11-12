@@ -354,12 +354,62 @@ mark.a.blank { color: transparent; border-bottom: 1.5px solid var(--fg); backgro
 .sheet.cover h1 { font-size: 30pt; letter-spacing: -0.03em; }
 .sheet.cover p { font-size: 13pt; margin-top: 6mm; }
 
+/* ---------- 출력 미리보기 ---------- */
+.pv-overlay { position: fixed; inset: 0; z-index: 55; background: #3f3f46; display: flex; flex-direction: column; }
+.pv-bar { display: flex; align-items: center; gap: 10px; padding: 9px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.pv-bar h3 { font-size: 15px; margin: 0; }
+.pv-bar .pv-title { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-bar .seg button { padding: 0 9px; font-size: 12px; white-space: nowrap; }
+.pv-field { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.pv-bar .input.bad { border-color: var(--bad); }
+.pv-stage { flex: 1; overflow: auto; padding: 28px 24px 40px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pv-page { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 10px; }
+.pv-page .sheet { box-shadow: 0 4px 18px rgba(0,0,0,.4); }
+.pv-page .lab { color: #e4e4e7; font-size: 12px; font-family: var(--mono); }
+.pv-page.off { opacity: .28; }
+.pv-empty { color: #e4e4e7; margin-top: 20vh; }
+.pv-tip { padding: 7px 16px; font-size: 12px; color: var(--muted); background: var(--panel); border-top: 1px solid var(--line); }
+.pv-measure { position: absolute; left: -100000px; top: 0; visibility: hidden; }
+.pv-overlay.gray .sheet, .pv-overlay.gray .print-flow, #print-root.gray { filter: grayscale(1); }
+.pv-overlay .hdr-hint { display: none; }
+.print-flow { background: #fff; color: #18181b; font-family: var(--font-ui); }
+
+/* 출력용 주석 쪽 */
+.ps .ps-hdr { flex: none; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 0.6mm solid; padding-bottom: 2mm; margin-bottom: 4mm; font-family: var(--font-ui); }
+.ps .ps-hdr .t { font-size: 15pt; font-weight: 800; letter-spacing: -0.02em; }
+.ps .ps-hdr .a { font-size: 10pt; font-weight: 500; margin-left: 2mm; color: #52525b; }
+.ps .ps-hdr .s { font-size: 8.5pt; color: #71717a; margin-top: 1mm; }
+.ps .ps-hdr .r { font-size: 9pt; color: #52525b; text-align: right; }
+.ps .ps-hdr.cont { border-bottom-width: 0.3mm; margin-bottom: 3mm; }
+.ps .ps-hdr.cont .t { font-size: 10pt; }
+.ps .ps-body { flex: 1; min-height: 0; overflow: hidden; }
+.ps-row { display: grid; gap: 4mm; padding: 1.2mm 0; border-bottom: 0.2mm dashed #d4d4d8; }
+.ps-row.wing { grid-template-columns: 6mm minmax(0, 1fr) 42%; }
+.ps-row.note { grid-template-columns: 6mm minmax(0, 1fr); }
+.ps-row.note .ps-notes { grid-column: 2; }
+.ps-row .no { font: 7.5pt var(--mono); color: #a1a1aa; text-align: right; padding-top: 1.2mm; }
+.ps-row .tx { font-family: var(--font-paper); line-height: 1.9; white-space: pre-wrap; word-break: keep-all; }
+.ps-row .tx mark { background: transparent; color: inherit; border-bottom: 0.45mm solid; padding: 0 0.3mm; }
+.ps-row .tx mark.blank { color: transparent; border-bottom-color: #18181b !important; background: transparent !important; }
+.ps-row .tx sup { font: 700 6.5pt var(--font-ui); color: #18181b; margin-right: 0.3mm; }
+.ps-notes { display: flex; flex-direction: column; gap: 1mm; padding-top: 0.6mm; }
+.ps-note { font-family: var(--font-note); line-height: 1.45; border-left: 0.7mm solid; padding: 0.4mm 2mm; background: #fafafa; }
+.ps-note b { margin-right: 1.5mm; font-family: var(--font-ui); }
+.ps-gap { height: 3mm; }
+.ps-key { margin-top: 4mm; border: 0.3mm solid #a1a1aa; padding: 3mm 4mm; font-size: 9pt; font-family: var(--font-ui); }
+.ps-key h4 { margin: 0 0 2mm; font-size: 10pt; }
+.ps-key ol { margin: 0; padding-left: 5mm; columns: 2; column-gap: 8mm; }
+
 /* ---------- 인쇄 ---------- */
 #print-root { display: none; }
 @media print {
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
   body > *:not(#print-root) { display: none !important; }
-  #print-root { display: block !important; }
-  #print-root .sheet { box-shadow: none; break-after: page; }
+  #print-root { display: block !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #print-root .sheet { box-shadow: none !important; margin: 0; break-after: page; break-inside: avoid; }
+  #print-root .sheet:last-child { break-after: auto; }
+  #print-root .print-flow { width: auto !important; min-height: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  #print-root .hdr-hint { display: none !important; }
 }
 
 @media (max-width: 1100px) {
