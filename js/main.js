@@ -25,6 +25,12 @@
     settings: () => { const s = A.Settings.get(); return { ...s, ai: { ...s.ai, geminiKey: s.ai.geminiKey ? '••••' : '' } }; },
   };
 
+  // 배포 사이트(비밀번호 보호)에서만 잠그기 버튼 표시. 로컬 개발 서버에는 비밀번호가 없음
+  if (location.protocol === 'https:') {
+    const foot = A.$('.side-foot');
+    foot.insertBefore(A.h('a', { href: '/__logout', class: 'btn ghost sm', title: '잠그기: 다시 들어오려면 비밀번호 필요', 'aria-label': '잠그기' }, '잠그기'), foot.lastElementChild);
+  }
+
   if (!location.hash) location.hash = '#/exam';
   A.renderRoute();
 })(window.App);
