@@ -117,7 +117,7 @@
       const s = A.Settings.get();
       const chain = s.ocr.chain.filter((e) => !s.ocr.disabled.includes(e));
       const chainEl = h('div', { class: 'chain' }, h('span', { class: 'chip ok' }, 'PDF 글자·HWPX 직접 읽기'), h('span', { class: 'arr' }, '→'),
-        chain.map((e, i) => [i ? h('span', { class: 'arr' }, '→') : null, h('span', { class: 'chip' + (e === 'gemini' && !s.ai.geminiKey ? '' : ' accent'), title: e === 'gemini' && !s.ai.geminiKey ? 'Gemini 키가 없어 건너뜀' : '' }, A.ENGINE_LABEL[e] + (e === 'gemini' && !s.ai.geminiKey ? ' (키 없음)' : ''))]));
+        chain.map((e, i) => { const off = e === 'gemini' && !A.llm.ready('ocr'); return [i ? h('span', { class: 'arr' }, '→') : null, h('span', { class: 'chip' + (off ? '' : ' accent'), title: e === 'gemini' ? (off ? '연결된 AI 키가 없어 건너뜀' : A.llm.label('ocr')) : '' }, e === 'gemini' ? (off ? 'AI 판독 (키 없음)' : 'AI 판독 · ' + A.llm.modelFor(A.llm.providerFor('ocr'))) : A.ENGINE_LABEL[e])]; }));
       const j = S.jobId && A.Jobs.get(S.jobId);
       return h('div', { class: 'card' },
         h('div', { class: 'card-h' }, h('h3', null, '3  실행'), h('a', { href: '#/settings?s=ocr', class: 'small' }, '대체 순서 바꾸기')),

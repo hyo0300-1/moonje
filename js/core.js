@@ -98,7 +98,7 @@ window.App = window.App || {};
 
   // ---------- 설정 ----------
   const ENGINE_LABEL = {
-    pdf_text: 'PDF 글자 레이어', parsed: '파일 직접 읽기', gemini: 'Gemini 판독', dedicated_ocr: '전용 OCR(로컬)',
+    pdf_text: 'PDF 글자 레이어', parsed: '파일 직접 읽기', gemini: 'AI 판독', dedicated_ocr: '전용 OCR(로컬)',
     tile_mode: '타일 모드', manual: '수동 확인', reference_mode: '참조형 구조화(AI)', rule_based: '규칙 기반 구조화',
   };
   const OUTCOME_LABEL = { ok: '완료', blocked_copyright: '저작권 차단', blocked_safety: '안전 차단', truncated: '잘림', error: '오류', low_quality: '품질 낮음', skipped: '건너뜀' };
@@ -108,7 +108,12 @@ window.App = window.App || {};
     output: { quickAnswers: false, promptTitles: true, answerPlacement: 'end', paper: 'B4' },
     annotation: { density: 3, layout: 'wing', autoHighlight: true },
     ocr: { chain: ['gemini', 'dedicated_ocr', 'tile_mode', 'manual'], disabled: [], structure: ['reference_mode', 'rule_based'], lowConf: 70, enhance: true, lang: 'kor+eng' },
-    ai: { geminiKey: '', model: 'gemini-2.5-flash' },
+    ai: {
+      keys: { gemini: '', openai: '', anthropic: '' },
+      models: { gemini: 'gemini-3.8-flash', openai: 'gpt-6.1-terra', anthropic: 'claude-sonnet-5-5' },
+      tasks: { ocr: 'gemini', structure: 'gemini', annotate: 'gemini' },
+      limits: { gemini: 0, openai: 0, anthropic: 0 },
+    },
     ui: { theme: 'light' },
     notify: { jobDone: true },
   };
@@ -116,7 +121,13 @@ window.App = window.App || {};
     key: 'ks.settings',
     histKey: 'ks.settings.history',
     get() {
-      try { return deepMerge(DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(this.key) || '{}')); } catch { return clone(DEFAULT_SETTINGS); }
+      let s;
+      try { s = deepMerge(DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(this.key) || '{}')); } catch { s = clone(DEFAULT_SETTINGS); }
+      // 예전 설정 옮기기: 단일 Gemini 키 → 회사별 키, 종료 예정 모델 교체
+      if (s.ai.geminiKey && !s.ai.keys.gemini) s.ai.keys.gemini = s.ai.geminiKey;
+      delete s.ai.geminiKey; delete s.ai.model;
+      if (/^gemini-2\.5/.test(s.ai.models.gemini || '')) s.ai.models.gemini = 'gemini-3.8-flash';
+      return s;
     },
     save(next) {
       const prev = this.get();
@@ -125,7 +136,7 @@ window.App = window.App || {};
         for (const k of new Set([...Object.keys(a || {}), ...Object.keys(b || {})])) {
           const av = a?.[k], bv = b?.[k], path = p ? p + '.' + k : k;
           if (av && bv && typeof av === 'object' && !Array.isArray(av)) walk(av, bv, path);
-          else if (JSON.stringify(av) !== JSON.stringify(bv)) diff.push({ path, from: k === 'geminiKey' ? (av ? '••••' : '') : av, to: k === 'geminiKey' ? (bv ? '••••' : '') : bv });
+          else if (JSON.stringify(av) !== JSON.stringify(bv)) { const secret = /^ai\.keys\./.test(path); diff.push({ path, from: secret ? (av ? '••••' : '') : av, to: secret ? (bv ? '••••' : '') : bv }); }
         }
       })(prev, next, '');
       localStorage.setItem(this.key, JSON.stringify(next));
@@ -207,28 +218,16 @@ window.App = window.App || {};
     }
   }
 
-  // ---------- Gemini (설정에 키가 있을 때만 사용) ----------
-  async function gemini(parts, { json = true, temperature = 0 } = {}) {
-    const s = Settings.get();
-    if (!s.ai.geminiKey) { const e = new Error('Gemini 키가 없습니다'); e.code = 'NO_KEY'; throw e; }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(s.ai.model)}:generateContent?key=${encodeURIComponent(s.ai.geminiKey)}`;
-    const body = { contents: [{ role: 'user', parts }], generationConfig: { temperature, ...(json ? { responseMimeType: 'application/json' } : {}) } };
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error(data?.error?.message || `Gemini 오류 ${r.status}`); e.code = 'GEMINI_HTTP_' + r.status; throw e; }
-    const blocked = data?.promptFeedback?.blockReason;
-    const cand = data?.candidates?.[0];
-    const finishReason = blocked || cand?.finishReason || 'UNKNOWN';
-    const text = (cand?.content?.parts || []).map((p) => p.text || '').join('');
-    let parsed = null;
-    if (json && text) { try { parsed = JSON.parse(text); } catch { parsed = null; } }
-    return { finishReason, text, json: parsed };
+  // ---------- 예전 호출 이름 유지: 작업별로 고른 AI(Gemini·OpenAI·Claude)로 보냄 ----------
+  async function gemini(parts, { json = true, task = 'structure' } = {}) {
+    return A.llm.generate({ task, parts, json });
   }
   // 응답 분류 (DB 함수 classify_ocr_outcome 과 동일 규칙)
   function classifyOutcome(finishReason, chars, expected) {
     const f = String(finishReason || '').toUpperCase();
     if (f === 'RECITATION') return 'blocked_copyright';
-    if (['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'OTHER'].includes(f)) return 'blocked_safety';
+    if (['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'OTHER', 'REFUSAL'].includes(f)) return 'blocked_safety';
+    if (f === 'MAX_TOKENS') return 'truncated';
     if (!chars) return 'error';
     if (expected > 0 && chars < expected * 0.5) return 'truncated';
     return 'ok';
@@ -291,7 +290,7 @@ window.App = window.App || {};
     { t: '디자인 작업대에서 배너 바꾸기', k: '디자인 배너 이미지 머리 표지 로고 워터마크', run: () => go('design') },
     { t: '자료함 열기', k: '자료함 저장 보관 목록', run: () => go('library') },
     { t: '설정: OCR 대체 순서', k: '설정 ocr 엔진 대체 저작권 차단 순서', run: () => go('settings', { s: 'ocr' }) },
-    { t: '설정: Gemini 키 넣기', k: '설정 gemini 키 ai api', run: () => go('settings', { s: 'ocr' }) },
+    { t: '설정: AI 모델 연결 (Gemini·OpenAI·Claude)', k: '설정 ai 모델 키 api gemini openai gpt claude 제미나이 클로드', run: () => go('settings', { s: 'ai' }) },
     { t: '설정: 학원 브랜드', k: '설정 학원 브랜드 이름 로고 강조색', run: () => go('settings', { s: 'brand' }) },
     { t: '작업 큐 보기', k: '작업 큐 진행 상태 job', run: () => toggleDrawer(true) },
     { t: '다크 모드 전환', k: '테마 다크 라이트 화면', run: () => toggleTheme() },
@@ -388,7 +387,7 @@ window.App = window.App || {};
       const data = { app: 'kor-studio', version: 1, exported_at: new Date().toISOString(), stores: {}, local: {} };
       for (const s of STORES) data.stores[s] = await DB.all(s);
       for (const k of LS_KEYS) data.local[k] = localStorage.getItem(k);
-      if (data.local['ks.settings']) { try { const st = JSON.parse(data.local['ks.settings']); if (st.ai) st.ai.geminiKey = ''; data.local['ks.settings'] = JSON.stringify(st); } catch {} }
+      if (data.local['ks.settings']) { try { const st = JSON.parse(data.local['ks.settings']); if (st.ai) { st.ai.geminiKey = ''; st.ai.keys = { gemini: '', openai: '', anthropic: '' }; } data.local['ks.settings'] = JSON.stringify(st); } catch {} }
       const d = new Date(), p = (n) => String(n).padStart(2, '0');
       download(`국어스튜디오-백업-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`, JSON.stringify(data), 'application/json');
       localStorage.setItem(this.lastKey, String(Date.now()));
@@ -405,7 +404,7 @@ window.App = window.App || {};
       for (const k of LS_KEYS) {
         if (data.local?.[k] == null) continue;
         if (k === 'ks.settings') { // 지금 쓰는 API 키는 유지
-          try { const cur = Settings.get(); const st = JSON.parse(data.local[k]); st.ai = { ...(st.ai || {}), geminiKey: cur.ai.geminiKey }; localStorage.setItem(k, JSON.stringify(st)); } catch {}
+          try { const cur = Settings.get(); const st = JSON.parse(data.local[k]); st.ai = { ...(st.ai || {}), keys: cur.ai.keys }; delete st.ai.geminiKey; localStorage.setItem(k, JSON.stringify(st)); } catch {}
         } else localStorage.setItem(k, data.local[k]);
       }
       applyTheme();

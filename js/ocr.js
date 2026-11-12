@@ -172,7 +172,7 @@
       const b64 = page.src.split(',')[1];
       const mime = page.src.slice(5, page.src.indexOf(';'));
       const prompt = '이 시험지 이미지의 글자를 위에서 아래, 왼쪽 단에서 오른쪽 단 순서로 줄 단위로 옮겨라. 고치거나 요약하지 말 것. JSON {"lines":["…"]} 형식으로만 답하라.';
-      const r = await A.gemini([{ text: prompt }, { inline_data: { mime_type: mime, data: b64 } }]);
+      const r = await A.llm.generate({ task: 'ocr', parts: [{ text: prompt }, { image: { mime, data: b64 } }], json: true, maxTokens: 16000 });
       const arr = Array.isArray(r.json?.lines) ? r.json.lines.map((x) => (typeof x === 'string' ? x : x?.text || '')) : [];
       const chars = arr.join('').replace(/\s/g, '').length;
       return { outcome: A.classifyOutcome(r.finishReason, chars, page.expectedChars || 0), finishReason: r.finishReason, lines: arr.filter((t) => t.trim()).map((t) => ({ text: t, bbox: null, confidence: null, status: 'ok' })) };
@@ -220,8 +220,9 @@
       ctx.log('info', `${tag}: ${A.ENGINE_LABEL[p.kind]} → OCR 없이 바로 사용 (비용 0)`);
     } else {
       p.text_source = 'ocr';
-      const chain = s.ocr.chain.filter((e) => !s.ocr.disabled.includes(e)).filter((e) => e !== 'gemini' || s.ai.geminiKey);
-      if (!s.ai.geminiKey && s.ocr.chain.includes('gemini') && !s.ocr.disabled.includes('gemini')) p.fallback_path.push('gemini:skipped');
+      const aiOk = A.llm.ready('ocr');
+      const chain = s.ocr.chain.filter((e) => !s.ocr.disabled.includes(e)).filter((e) => e !== 'gemini' || aiOk);
+      if (!aiOk && s.ocr.chain.includes('gemini') && !s.ocr.disabled.includes('gemini')) p.fallback_path.push('gemini:skipped');
       for (const eng of chain) {
         if (ctx.cancelled()) throw err('취소됨', 'CANCELLED');
         ctx.log('stage', `${tag}: ${A.ENGINE_LABEL[eng]} 시도`);

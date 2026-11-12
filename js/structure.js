@@ -149,7 +149,7 @@ JSON 형식: {"sets":[{"from":18,"to":21,"header_ref":"P1-L3","passage_refs":["P
 "domain":"READING|POETRY|NOVEL|SPEECH_WRITING|GRAMMAR|MEDIA","item_type":"FACT|INFER|APPLY|VOCAB|STRUCT|EXPR|CHAR|COMPARE|CRIT|GRAM|MEDIA|SPEECH|WRITE"}]}
 줄 목록:
 ${listing}`;
-    const r = await A.gemini([{ text: prompt }]);
+    const r = await A.llm.generate({ task: 'structure', parts: [{ text: prompt }], json: true, maxTokens: 32000 });
     const j = r.json;
     if (A.classifyOutcome(r.finishReason, (r.text || '').length, 0) !== 'ok' || !j || !Array.isArray(j.items) || !j.items.length) {
       const e = new Error(`참조형 구조화 실패 (${r.finishReason}${j ? '' : ', JSON 아님'})`); e.code = 'REFERENCE_FAILED'; throw e;
@@ -172,8 +172,8 @@ ${listing}`;
     const chain = s.structure || s.ocr.structure;
     for (const eng of chain) {
       if (eng === 'reference_mode') {
-        if (!s.ai.geminiKey) { ctx.log('info', '구조화: 참조형(AI)은 Gemini 키가 없어 건너뜀 → 규칙 기반'); continue; }
-        try { ctx.log('stage', '구조화: 참조형(AI, 줄 ID만 응답) 시도'); const st = enrich(await referenceStructure(lines), lines); st.engine = 'reference_mode'; ctx.log('info', `구조화 완료: ${st.items.length}문항 (참조형)`); return st; }
+        if (!A.llm.ready('structure')) { ctx.log('info', '구조화: 참조형(AI)은 연결된 AI 키가 없어 건너뜀 → 규칙 기반'); continue; }
+        try { ctx.log('stage', `구조화: 참조형(${A.llm.label('structure')}, 줄 ID만 응답) 시도`); const st = enrich(await referenceStructure(lines), lines); st.engine = 'reference_mode'; ctx.log('info', `구조화 완료: ${st.items.length}문항 (참조형)`); return st; }
         catch (e) { ctx.log('fallback', `구조화: ${e.message} → 규칙 기반으로 전환`); }
       }
       if (eng === 'rule_based') { const st = enrich(ruleStructure(lines), lines); st.engine = 'rule_based'; ctx.log('info', `구조화 완료: ${st.items.length}문항 (규칙 기반)`); return st; }

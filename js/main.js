@@ -22,7 +22,8 @@
     getJob: (id) => A.Jobs.get(id),
     listDocuments: () => A.DB.all('documents').then((ds) => ds.map((d) => ({ id: d.id, title: d.title, mode: d.mode, pages: d.pages.length, items: d.structure?.items?.length || 0 }))),
     getDocument: (id) => A.DB.get('documents', id),
-    settings: () => { const s = A.Settings.get(); return { ...s, ai: { ...s.ai, geminiKey: s.ai.geminiKey ? '••••' : '' } }; },
+    settings: () => { const s = A.Settings.get(); return { ...s, ai: { ...s.ai, keys: Object.fromEntries(Object.entries(s.ai.keys).map(([k, v]) => [k, v ? '••••' : ''])) } }; },
+    llm: { status: () => A.llm.status, generate: (opts) => A.llm.generate(opts), usage: (p) => A.llm.usage(p), models: () => window.KSLLM.MODELS },
   };
 
   // 배포 사이트(비밀번호 보호)에서만 잠그기 버튼 표시. 로컬 개발 서버에는 비밀번호가 없음
@@ -31,6 +32,7 @@
     foot.insertBefore(A.h('a', { href: '/__logout', class: 'btn ghost sm', title: '잠그기: 다시 들어오려면 비밀번호 필요', 'aria-label': '잠그기' }, '잠그기'), foot.lastElementChild);
   }
 
+  A.llm.refresh();
   if (!location.hash) location.hash = '#/exam';
   A.renderRoute();
 })(window.App);

@@ -105,7 +105,7 @@ JSON {"notes":[{"quote":"…","category":"…","note":"…","level":1}]} 로만 
 원문:
 ${doc.text}`;
     ctx.stage('AI 주석 생성', 30);
-    const r = await A.gemini([{ text: prompt }]);
+    const r = await A.llm.generate({ task: 'annotate', parts: [{ text: prompt }], json: true, maxTokens: 16000 });
     if (A.classifyOutcome(r.finishReason, (r.text || '').length, 0) !== 'ok' || !Array.isArray(r.json?.notes)) { const e = new Error(`AI 주석 실패 (${r.finishReason})`); throw e; }
     ctx.stage('위치 연결', 80);
     return r.json.notes.map((n) => ({ ...anchor(doc.text, n.quote || ''), id: A.uid('n'), quote: n.quote, category: CAT[n.category] ? n.category : '출제포인트', note: String(n.note || '').slice(0, 160), level: Math.min(5, Math.max(1, +n.level || 3)), source: 'ai', pinned: false, hidden: false }));
@@ -141,8 +141,8 @@ ${doc.text}`;
           h('div', { class: 'field' }, h('label', null, '원문'), h('textarea', { class: 'input', rows: 14, 'aria-label': '원문', oninput: (e) => { doc.text = e.target.value; clearTimeout(doc._t); doc._t = setTimeout(() => { doc.genre = detectGenre(doc.text); rerun(); }, 600); } }, doc.text)),
           h('div', { class: 'row' },
             h('button', { class: 'btn', onclick: rerun }, '사전 주석 다시'),
-            h('button', { class: 'btn primary', disabled: !!aiJob || !doc.text.trim(), title: s.ai.geminiKey ? '' : '설정 > OCR·AI에 Gemini 키를 넣으면 켜져요', onclick: runAI }, aiJob ? 'AI 주석 중…' : 'AI 주석 추가 (2단계)')),
-          !A.Settings.get().ai.geminiKey ? h('div', { class: 'small muted' }, 'AI 주석은 설정에 Gemini 키가 있을 때 동작해요. 지금 보이는 주석은 규칙 기반 1단계(무료)입니다.') : null,
+            h('button', { class: 'btn primary', disabled: !!aiJob || !doc.text.trim(), title: A.llm.ready('annotate') ? A.llm.label('annotate') : '설정 > AI 모델에서 키를 넣으면 켜져요', onclick: runAI }, aiJob ? 'AI 주석 중…' : 'AI 주석 추가 (2단계)')),
+          !A.llm.ready('annotate') ? h('div', { class: 'small muted' }, 'AI 주석은 설정 > AI 모델에서 Gemini·OpenAI·Claude 중 하나를 연결하면 동작해요. 지금 보이는 주석은 규칙 기반 1단계(무료)입니다.') : h('div', { class: 'small muted' }, 'AI 주석: ' + A.llm.label('annotate')),
           lost.length ? h('div', { class: 'small', style: { color: 'var(--warn)' } }, `위치를 못 찾은 주석 ${lost.length}개: ${lost.map((n) => '"' + n.quote + '"').join(', ')} (버리지 않고 보관)`) : null));
 
       const out = h('div', { class: 'anno-out ' + (doc.layout === 'note' ? 'note' : '') });
