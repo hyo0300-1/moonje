@@ -329,7 +329,7 @@
         h('button', { class: 'btn sm', onclick: () => { zoom = Math.min(1.2, +(zoom + 0.1).toFixed(2)); drawPreview(); } }, '+'),
         h('span', { class: 'spacer' }),
         h('span', { class: 'small', id: 'pc' }),
-        h('button', { class: 'btn sm primary', onclick: printAll, html: icon('printer') + 'PDF로 인쇄' }));
+        h('button', { class: 'btn sm primary', title: '인쇄하거나 PDF로 저장 (Ctrl+P)', onclick: printAll, html: icon('printer') + '출력 미리보기' }));
       center.append(tb, canvas);
       const { total } = layout(canvas);
       pageCount = total;
@@ -367,15 +367,13 @@
       drawLeft(); drawPreview();
       A.toast(`${ok[0]}pt · 줄 간격 ${Math.round(ok[1] * 100)}% · 여백 ${ok[2]}mm로 ${pageCount}쪽에 맞췄어요`);
     }
-    function printAll() {
-      const pr = document.getElementById('print-root');
-      pr.innerHTML = '';
-      pr.setAttribute('aria-hidden', 'true');
-      const [wmm, hmm] = PAPER[st.paper];
-      pr.append(h('style', null, `@page { size: ${wmm}mm ${hmm}mm; margin: 0 }`));
-      sheets.forEach((s) => { const c = s.cloneNode(true); c.style.boxShadow = 'none'; pr.append(c); });
-      window.print();
-    }
+    // 출력: 작업대에서 조판한 쪽을 그대로 미리보기·인쇄 (용지·글꼴은 작업대에서 바꿈)
+    const printSpec = () => ({
+      title: (st.brand.title || blocksFrom().title) + ` · ${st.paper} ${st.columns}단`, paper: st.paper,
+      build: () => ({ pages: sheets.map((s) => { const c = s.cloneNode(true); c.querySelectorAll('.hdr-hint').forEach((x) => x.remove()); c.querySelectorAll('.hdr').forEach((x) => { x.style.cursor = 'default'; x.removeAttribute('title'); }); return c; }), warnings: [...warnings] }),
+    });
+    function printAll() { A.print.preview(printSpec()); }
+    A.print.register(printSpec);
     const onKey = (e) => {
       if (!(e.ctrlKey || e.metaKey) || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
       if (e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }

@@ -9,6 +9,7 @@
   A.$('#drawer-close').addEventListener('click', () => A.toggleDrawer(false));
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); A.openPalette(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') { e.preventDefault(); A.print.openCurrent(); }
   });
   A.Jobs.on(A.renderJobs);
   A.renderJobs();

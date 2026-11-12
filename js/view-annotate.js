@@ -215,6 +215,7 @@ ${doc.text}`;
         h('div', { class: 'card-b row', style: { borderTop: '1px solid var(--line)' } },
           h('span', { class: 'small muted' }, '주석은 원문 위치에 묶여 있어 레이아웃·필기량을 바꿔도 그대로예요.'), h('span', { class: 'spacer' }),
           h('button', { class: 'btn sm', onclick: () => { doc = { id: A.uid('an_'), title: '', author: '', text: '', genre: '비문학', notes: [], density: doc.density, layout: doc.layout, created_at: Date.now(), scale20: true }; A.annoDraft = doc; draw(); } }, '새 지문'),
+          h('button', { class: 'btn sm', disabled: !doc.text.trim(), title: '인쇄하거나 PDF로 저장 (Ctrl+P)', onclick: openPrint, html: A.icon('printer') + '출력 미리보기' }),
           h('button', { class: 'btn sm primary', onclick: async () => { doc.saved_at = Date.now(); const { _t, ...clean } = doc; await A.DB.put('annotations', clean); A.toast('자료함에 저장했어요'); } }, '자료함에 저장')));
       root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, '주석 달기'), h('p', null, '지문을 넣으면 바로 주석이 달립니다. 필기량과 레이아웃(날개형·노트형·빈칸형)을 바꿔도 다시 만들지 않아요.'))),
         h('div', { class: 'anno' }, left, right));
@@ -231,6 +232,9 @@ ${doc.text}`;
           h('button', { title: '숨기기', 'aria-label': `숨기기: ${n.quote}`, onclick: () => { n.hidden = true; draw(); } }, '숨김')),
         h('span', { class: 'tiny muted num', title: '중요도 1~20 (낮을수록 중요, 필기량이 이 값 이상이면 보임)' }, rankOf(n)));
     }
+    const printSpec = () => annoPrintSpec([{ doc, density: doc.density, hide: hideCats }], doc.title || '주석', doc.layout);
+    function openPrint() { if (!doc.text.trim()) return A.toast('원문을 먼저 넣어 주세요', 'bad'); A.print.preview(printSpec()); }
+    A.print.register(printSpec);
     function rerun() { const keep = doc.notes.filter((n) => n.source !== 'rule'); doc.notes = [...ruleNotes(doc.text, doc.genre), ...keep]; draw(); }
     function runAI() {
       if (!A.llm.ready('annotate')) { A.toast('AI 키가 연결되지 않았어요. 설정 > AI 모델에서 연결해 주세요.', 'bad'); return A.go('settings', { s: 'ai' }); }
@@ -247,6 +251,74 @@ ${doc.text}`;
     if (A.llm.status.via === 'unknown') A.llm.refresh().then(() => { if (root.isConnected) draw(); });
     return { cleanup: unsub };
   });
+
+  // ---------- 출력 (주석 달기·주석교재 공통) ----------
+  const PSIZE = { s: [10, 7.5], m: [11, 8.5], l: [12.5, 9.5] };
+  const BLANK_CATS = ['어휘', '출제포인트', '현대어풀이', '구조'];
+  function printVisible(u) { return u.doc.notes.filter((n) => n.start >= 0 && !n.hidden && !(u.hide && u.hide.has(n.category)) && (n.pinned || rankOf(n) <= u.density)); }
+  function annoPrintSpec(units, title, layout) {
+    const S0 = A.Settings.get();
+    return {
+      title, paper: S0.output.paper || 'B4', papers: ['A4', 'B4'],
+      controls: [
+        { key: 'layout', label: '모양', value: layout || 'wing', options: [['wing', '날개형'], ['note', '노트형'], ['blank', '빈칸형']] },
+        { key: 'size', label: '글자', value: 'm', options: [['s', '작게'], ['m', '보통'], ['l', '크게']] },
+      ],
+      build(opts, host) {
+        const S = A.Settings.get();
+        const MM = A.print.MM;
+        const [wmm, hmm] = A.print.PAPER[opts.paper];
+        const [tp, np] = PSIZE[opts.size] || PSIZE.m;
+        const accent = S.brand.accent || '#904ae8';
+        const blocks = [];
+        units.forEach((u, ui) => {
+          const doc = u.doc, vis = printVisible(u), key = [];
+          let off = 0, no = 0, bn = 0, first = true;
+          for (const t of doc.text.split('\n')) {
+            const o = off; off += t.length + 1;
+            if (!t.trim()) { if (!first) blocks.push({ el: h('div', { class: 'ps-gap' }), unit: ui }); continue; }
+            no++;
+            const mine = vis.filter((n) => n.start >= o && n.start < o + t.length).sort((a, b) => a.start - b.start);
+            const tx = h('div', { class: 'tx', style: { fontSize: tp + 'pt' } });
+            let cur = o;
+            for (const n of mine) {
+              if (n.start < cur) continue;
+              tx.append(document.createTextNode(doc.text.slice(cur, n.start)));
+              const e = Math.min(n.end, o + t.length);
+              const blank = opts.layout === 'blank' && BLANK_CATS.includes(n.category);
+              if (blank) { bn++; key.push(doc.text.slice(n.start, e)); tx.append(h('sup', null, `(${bn})`)); }
+              tx.append(h('mark', { class: blank ? 'blank' : '', style: { borderColor: CAT[n.category], background: S.annotation.autoHighlight && !blank ? CAT[n.category] + '14' : 'transparent' } }, doc.text.slice(n.start, e)));
+              cur = e;
+            }
+            tx.append(document.createTextNode(doc.text.slice(cur, o + t.length)));
+            const notes = mine.map((n) => h('div', { class: 'ps-note', style: { borderColor: CAT[n.category], fontSize: np + 'pt' } }, h('b', { style: { color: CAT[n.category] } }, n.category), n.note));
+            const row = h('div', { class: 'ps-row ' + (opts.layout === 'note' ? 'note' : 'wing') }, h('div', { class: 'no' }, no), tx, opts.layout !== 'note' || notes.length ? h('div', { class: 'ps-notes' }, notes) : null);
+            blocks.push({ el: row, unit: ui, newPage: first && ui > 0, label: `${doc.title || '지문'} ${no}행` });
+            first = false;
+          }
+          if (key.length) blocks.push({ el: h('div', { class: 'ps-key' }, h('h4', null, `빈칸 정답 · ${doc.title || '지문'}`), h('ol', null, key.map((k) => h('li', null, k)))), unit: ui, label: '빈칸 정답' });
+        });
+        const newSheet = (i, b) => {
+          const u = units[b ? b.unit : 0], doc = u.doc;
+          const head = !b || b.newPage || i === 0;
+          const hdr = head
+            ? h('div', { class: 'ps-hdr', style: { borderColor: accent } },
+              h('div', null, h('div', null, h('span', { class: 't' }, doc.title || '제목 없음'), doc.author ? h('span', { class: 'a' }, doc.author) : null),
+                h('div', { class: 's' }, `${doc.genre || ''} · 필기량 ${u.density}/${DMAX} · 주석 ${printVisible(u).length}개`)),
+              h('div', { class: 'r' }, S.brand.academyName || '', h('br'), new Date().toLocaleDateString('ko-KR')))
+            : h('div', { class: 'ps-hdr cont', style: { borderColor: '#d4d4d8' } }, h('span', { class: 't' }, `${doc.title || '지문'} (계속)`), h('span', { class: 'r' }, S.brand.academyName || ''));
+          const body = h('div', { class: 'ps-body' });
+          const sheet = h('div', { class: 'sheet ps', style: { width: wmm * MM + 'px', height: hmm * MM + 'px', padding: `${12 * MM}px ${14 * MM}px ${10 * MM}px` } }, hdr, body,
+            h('div', { class: 'ftr', style: { marginTop: 3 * MM + 'px' } }, h('span', null, [S.brand.academyName, S.brand.footerText].filter(Boolean).join(' · ')), h('span', { class: 'pn' })));
+          host.append(sheet);
+          return { sheet, body };
+        };
+        const r = A.print.paginate(blocks, newSheet);
+        r.pages.forEach((p, i) => { p.querySelector('.pn').textContent = `${i + 1} / ${r.pages.length}`; });
+        return r;
+      },
+    };
+  }
 
   function estimatePages(doc, vis) {
     const lines = doc.text.split('\n').length;
@@ -284,6 +356,7 @@ ${doc.text}`;
               h('div', { class: 'row' }, h('span', { class: 'small' }, '목표 쪽수'), h('input', { class: 'input', type: 'number', min: 0, value: target || '', placeholder: '없음', style: { width: '90px' }, oninput: (e) => { target = +e.target.value || 0; draw(); } }),
                 target ? h('span', { class: 'chip ' + (fitDensity === density ? 'ok' : 'warn') }, `맞추려면 필기량 ${fitDensity}`) : null,
                 target && fitDensity !== density ? h('button', { class: 'btn sm', onclick: () => { density = fitDensity; draw(); } }, '적용') : null),
+              h('div', { class: 'row' }, h('button', { class: 'btn sm primary', disabled: !units.length, onclick: () => A.print.preview(bookSpec()), html: A.icon('printer') + '교재 출력 미리보기' }), h('span', { class: 'small muted' }, units.length ? `작품 ${units.length}개를 작품마다 새 쪽에서 시작해요` : '작품을 골라 주세요')),
               h('div', { class: 'stats' }, h('div', { class: 'stat' }, h('div', { class: 'k' }, '예상 분량 (B4 2단)'), h('div', { class: 'v' }, total + '쪽')), h('div', { class: 'stat' }, h('div', { class: 'k' }, '첨부자료'), h('div', { class: 'v' }, att.size + '개'))),
               h('div', { class: 'small muted' }, '단계별 구성: 1~4 핵심만(출제포인트·기출) → 5~8 간결(+핵심 어휘) → 9~12 보통(+표현법·화자) → 13~16 풍부(+현대어 풀이·배경) → 17~20 촘촘(+문법·보충 전부)'))),
           h('div', { class: 'card', style: { gridColumn: '1 / -1' } }, h('div', { class: 'card-h' }, h('h3', null, '첨부자료 (역할별 가중치)'), h('a', { href: '#/exam?mode=text', class: 'small' }, '첨부자료 텍스트화하기')),
@@ -293,8 +366,10 @@ ${doc.text}`;
               h('td', { class: 'small muted' }, att.has(d.id) ? h('span', { class: 'chip' }, '준비 중') : '-'))))) : h('div', { class: 'empty' }, '시험지 분석·저장에서 프린트나 교재를 텍스트화해 저장하면 첨부자료로 쓸 수 있어요.'),
               h('div', { class: 'row small muted' }, h('span', { class: 'chip' }, '준비 중'), '구조도(시상 전개도·인물 관계도·문단 구조도)와 첨부자료-지문 정렬')))));
     }
+    const bookSpec = () => { const units = annos.filter((a) => sel.has(a.id)).map((d) => ({ doc: d, density })); return annoPrintSpec(units, `주석교재 · 작품 ${units.length}개`, A.Settings.get().annotation.layout); };
+    A.print.register(() => { if (!sel.size) A.toast('작품을 골라 주세요', 'bad'); return bookSpec(); });
     draw();
   });
 
-  A.annotate = { ruleNotes, anchor, detectGenre };
+  A.annotate = { ruleNotes, anchor, detectGenre, printSpec: annoPrintSpec };
 })(window.App);

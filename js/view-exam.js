@@ -300,7 +300,8 @@
         h('div', null, h('div', { class: 'lbl', style: { marginBottom: '6px' } }, '학부모 상담용 요약'), h('div', { style: { lineHeight: '1.8', fontSize: '13.5px' } }, a.summary.map((t) => h('p', { style: { margin: '0 0 6px' } }, t)))),
         h('div', { class: 'row' }, h('span', { class: 'small muted' }, '확인한 문항은 시험지 제작의 동형 설계도에 바로 쓸 수 있어요.'), h('span', { class: 'spacer' }),
           h('button', { class: 'btn sm', onclick: () => A.go('build', { doc: d.id }) }, '이 분석으로 시험지 제작'),
-          h('button', { class: 'btn sm', onclick: () => printReport(rep, d) , html: icon('printer') + 'PDF로 인쇄' })));
+          h('button', { class: 'btn sm', title: '인쇄하거나 PDF로 저장 (Ctrl+P)', onclick: () => printReport(rep, d), html: icon('printer') + '출력 미리보기' })));
+      A.print.register(() => reportSpec(rep, d));
       return rep;
     }
 
@@ -317,12 +318,21 @@
         h('p', { class: 'small muted' }, '시연판의 전용 OCR은 브라우저 안에서 도는 Tesseract입니다. 서비스 단계에서 Upstage/CLOVA 같은 한국어 문서 OCR로 바꾸면 신뢰도가 크게 올라가요.'));
     }
 
-    function printReport(node, d) {
-      const pr = document.getElementById('print-root');
-      pr.innerHTML = '';
-      pr.append(h('div', { style: { padding: '16mm', fontFamily: 'Pretendard, sans-serif' } }, h('h1', { style: { fontSize: '20pt', marginBottom: '6mm' } }, `${d.title} 분석 리포트`), node.cloneNode(true)));
-      window.print();
+    // 분석 리포트는 흐르는 글: 쪽 나눔은 브라우저가 함 (A4 여백 14mm)
+    function reportSpec(node, d) {
+      return {
+        title: `${d.title} 분석 리포트`, paper: 'A4', papers: ['A4', 'B4'], flow: true, margin: 14,
+        build: (opts) => {
+          const [w, hh] = A.print.PAPER[opts.paper]; const MM = A.print.MM;
+          const body = node.cloneNode(true);
+          body.querySelectorAll('button').forEach((b) => b.remove());
+          return { pages: [h('div', { class: 'print-flow', style: { width: w * MM + 'px', minHeight: hh * MM + 'px', padding: 14 * MM + 'px' } },
+            h('h1', { style: { fontSize: '20pt', margin: '0 0 6mm' } }, `${d.title} 분석 리포트`),
+            h('div', { class: 'small muted', style: { marginBottom: '5mm' } }, [A.Settings.get().brand.academyName, new Date().toLocaleDateString('ko-KR')].filter(Boolean).join(' · ')), body)] };
+        },
+      };
     }
+    function printReport(node, d) { A.print.preview(reportSpec(node, d)); }
     function exportTxt(d) {
       const t = d.pages.map((p) => `=== ${p.page_no}쪽 ===\n` + p.lines.map((l) => l.text).join('\n')).join('\n\n');
       A.download(`${d.title}.txt`, t);
