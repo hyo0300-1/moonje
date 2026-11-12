@@ -362,12 +362,62 @@ mark.a.blank { color: transparent; border-bottom: 1.5px solid var(--fg); backgro
 .sheet.cover h1 { font-size: 30pt; letter-spacing: -0.03em; }
 .sheet.cover p { font-size: 13pt; margin-top: 6mm; }
 
+/* ---------- 출력 미리보기 ---------- */
+.pv-overlay { position: fixed; inset: 0; z-index: 55; background: #3f3f46; display: flex; flex-direction: column; }
+.pv-bar { display: flex; align-items: center; gap: 10px; padding: 9px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.pv-bar h3 { font-size: 15px; margin: 0; }
+.pv-bar .pv-title { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-bar .seg button { padding: 0 9px; font-size: 12px; white-space: nowrap; }
+.pv-field { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.pv-bar .input.bad { border-color: var(--bad); }
+.pv-stage { flex: 1; overflow: auto; padding: 28px 24px 40px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pv-page { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 10px; }
+.pv-page .sheet { box-shadow: 0 4px 18px rgba(0,0,0,.4); }
+.pv-page .lab { color: #e4e4e7; font-size: 12px; font-family: var(--mono); }
+.pv-page.off { opacity: .28; }
+.pv-empty { color: #e4e4e7; margin-top: 20vh; }
+.pv-tip { padding: 7px 16px; font-size: 12px; color: var(--muted); background: var(--panel); border-top: 1px solid var(--line); }
+.pv-measure { position: absolute; left: -100000px; top: 0; visibility: hidden; }
+.pv-overlay.gray .sheet, .pv-overlay.gray .print-flow, #print-root.gray { filter: grayscale(1); }
+.pv-overlay .hdr-hint { display: none; }
+.print-flow { background: #fff; color: #18181b; font-family: var(--font-ui); }
+
+/* 출력용 주석 쪽 */
+.ps .ps-hdr { flex: none; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 0.6mm solid; padding-bottom: 2mm; margin-bottom: 4mm; font-family: var(--font-ui); }
+.ps .ps-hdr .t { font-size: 15pt; font-weight: 800; letter-spacing: -0.02em; }
+.ps .ps-hdr .a { font-size: 10pt; font-weight: 500; margin-left: 2mm; color: #52525b; }
+.ps .ps-hdr .s { font-size: 8.5pt; color: #71717a; margin-top: 1mm; }
+.ps .ps-hdr .r { font-size: 9pt; color: #52525b; text-align: right; }
+.ps .ps-hdr.cont { border-bottom-width: 0.3mm; margin-bottom: 3mm; }
+.ps .ps-hdr.cont .t { font-size: 10pt; }
+.ps .ps-body { flex: 1; min-height: 0; overflow: hidden; }
+.ps-row { display: grid; gap: 4mm; padding: 1.2mm 0; border-bottom: 0.2mm dashed #d4d4d8; }
+.ps-row.wing { grid-template-columns: 6mm minmax(0, 1fr) 42%; }
+.ps-row.note { grid-template-columns: 6mm minmax(0, 1fr); }
+.ps-row.note .ps-notes { grid-column: 2; }
+.ps-row .no { font: 7.5pt var(--mono); color: #a1a1aa; text-align: right; padding-top: 1.2mm; }
+.ps-row .tx { font-family: var(--font-paper); line-height: 1.9; white-space: pre-wrap; word-break: keep-all; }
+.ps-row .tx mark { background: transparent; color: inherit; border-bottom: 0.45mm solid; padding: 0 0.3mm; }
+.ps-row .tx mark.blank { color: transparent; border-bottom-color: #18181b !important; background: transparent !important; }
+.ps-row .tx sup { font: 700 6.5pt var(--font-ui); color: #18181b; margin-right: 0.3mm; }
+.ps-notes { display: flex; flex-direction: column; gap: 1mm; padding-top: 0.6mm; }
+.ps-note { font-family: var(--font-note); line-height: 1.45; border-left: 0.7mm solid; padding: 0.4mm 2mm; background: #fafafa; }
+.ps-note b { margin-right: 1.5mm; font-family: var(--font-ui); }
+.ps-gap { height: 3mm; }
+.ps-key { margin-top: 4mm; border: 0.3mm solid #a1a1aa; padding: 3mm 4mm; font-size: 9pt; font-family: var(--font-ui); }
+.ps-key h4 { margin: 0 0 2mm; font-size: 10pt; }
+.ps-key ol { margin: 0; padding-left: 5mm; columns: 2; column-gap: 8mm; }
+
 /* ---------- 인쇄 ---------- */
 #print-root { display: none; }
 @media print {
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
   body > *:not(#print-root) { display: none !important; }
-  #print-root { display: block !important; }
-  #print-root .sheet { box-shadow: none; break-after: page; }
+  #print-root { display: block !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #print-root .sheet { box-shadow: none !important; margin: 0; break-after: page; break-inside: avoid; }
+  #print-root .sheet:last-child { break-after: auto; }
+  #print-root .print-flow { width: auto !important; min-height: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  #print-root .hdr-hint { display: none !important; }
 }
 
 @media (max-width: 1100px) {
@@ -1210,6 +1260,185 @@ window.App = window.App || {};
 
 </script>
 <script>
+/* 국어 스튜디오 - 출력 미리보기 + 인쇄 (주석 달기 · 주석교재 · 디자인 작업대 · 분석 리포트가 같이 씀)
+ * A.print.preview(spec)
+ *   spec.title     미리보기 제목
+ *   spec.paper     'A4' | 'B4'
+ *   spec.papers    고를 수 있는 용지 목록 (없으면 용지 고정)
+ *   spec.controls  [{ key, label, options: [[값, 이름]...], value }]  바꾸면 다시 조판
+ *   spec.build(opts, host) → { pages: [Element], warnings: [] }   host는 실제 크기로 재는 숨은 자리
+ *   spec.flow      true면 쪽 나눔을 브라우저에 맡김(리포트처럼 흐르는 글)
+ * A.print.register(fn)  지금 화면의 출력 내용 등록 → Ctrl+P가 이 미리보기를 엶 */
+(function (A) {
+  'use strict';
+  const { h, icon } = A;
+  const MM = 96 / 25.4;
+  const PAPER = { A4: [210, 297], B4: [257, 364] };
+  let provider = null;
+  let openOverlay = null;
+
+  const routeKey = () => (location.hash || '#/').split('?')[0];
+  function register(fn) { provider = { fn, route: routeKey() }; }
+  function openCurrent() {
+    if (openOverlay) return openOverlay.print();
+    if (provider && provider.route === routeKey()) return preview(provider.fn());
+    A.toast('이 화면에는 출력할 자료가 없어요. 주석 달기·주석교재·디자인 작업대·분석 리포트에서 출력할 수 있어요.');
+  }
+
+  // "1-3, 5" → {0,1,2,4}. 비우면 전체. 잘못 쓰면 null
+  function parseRange(s, total) {
+    s = (s || '').replace(/\s/g, '');
+    if (!s) return new Set(Array.from({ length: total }, (_, i) => i));
+    const out = new Set();
+    for (const part of s.split(',')) {
+      const m = part.match(/^(\d+)(?:[-~](\d+))?$/);
+      if (!m) return null;
+      const a = +m[1], b = m[2] ? +m[2] : a;
+      if (a < 1 || b < a) return null;
+      for (let i = a; i <= Math.min(b, total); i++) out.add(i - 1);
+    }
+    return out.size ? out : null;
+  }
+
+  async function waitAssets(root) {
+    try { await document.fonts.ready; } catch {}
+    await Promise.all([...root.querySelectorAll('img')].map((img) => (img.complete ? null : new Promise((r) => { img.onload = img.onerror = r; setTimeout(r, 4000); }))));
+  }
+
+  async function printPages(pages, paper, { gray = false, flow = false, margin = 14 } = {}) {
+    const pr = document.getElementById('print-root');
+    pr.innerHTML = '';
+    pr.classList.toggle('gray', gray);
+    const [w, hh] = PAPER[paper] || PAPER.A4;
+    pr.append(h('style', null, flow
+      ? `@page { size: ${w}mm ${hh}mm; margin: ${margin}mm }`
+      : `@page { size: ${w}mm ${hh}mm; margin: 0 } #print-root .sheet { width: ${w}mm !important; height: ${(hh - 0.6).toFixed(1)}mm !important; }`));
+    for (const p of pages) { const c = p.cloneNode(true); c.style.transform = ''; c.style.boxShadow = 'none'; pr.append(c); }
+    pr.querySelectorAll('.hdr-hint').forEach((x) => x.remove());
+    await waitAssets(pr);
+    const done = () => { window.removeEventListener('afterprint', done); setTimeout(() => { pr.innerHTML = ''; }, 300); };
+    window.addEventListener('afterprint', done);
+    window.print();
+  }
+
+  function preview(spec) {
+    if (openOverlay) openOverlay.close();
+    const opts = { paper: spec.paper || A.Settings.get().output.paper || 'A4' };
+    for (const c of spec.controls || []) opts[c.key] = c.value;
+    let zoom = 'fit', range = '', gray = false, pages = [], warnings = [], dims = [];
+    const prevFocus = document.activeElement;
+
+    const host = h('div', { class: 'pv-measure', 'aria-hidden': 'true' });
+    const bar = h('div', { class: 'pv-bar' });
+    const stage = h('div', { class: 'pv-stage' });
+    const tip = h('div', { class: 'pv-tip' });
+    const ov = h('div', { class: 'pv-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': '출력 미리보기' }, bar, stage, tip, host);
+    document.body.append(ov);
+
+    const seg = (list, cur, on, label) => h('div', { class: 'seg', role: 'group', 'aria-label': label }, list.map(([v, l]) => h('button', { class: String(cur) === String(v) ? 'on' : '', 'aria-pressed': String(cur) === String(v), onclick: () => on(v) }, l)));
+    const field = (label, el) => h('div', { class: 'pv-field' }, h('span', null, label), el);
+
+    function rebuild() {
+      host.innerHTML = '';
+      let r;
+      try { r = spec.build(opts, host) || {}; } catch (e) { console.error(e); A.toast('조판 중 문제가 생겼어요: ' + e.message, 'bad'); r = { pages: [] }; }
+      pages = r.pages || [];
+      warnings = r.warnings || [];
+      // 화면에서 떼어 내면 크기를 재지 못하므로 지금 재 둠
+      for (const p of pages) if (!p.isConnected) host.append(p);
+      dims = pages.map((p) => [p.offsetWidth, p.offsetHeight]);
+      drawBar(); drawStage();
+    }
+    function sel() { return parseRange(range, pages.length); }
+    function drawBar() {
+      bar.innerHTML = '';
+      const s = sel();
+      const rangeIn = h('input', { class: 'input' + (s ? '' : ' bad'), value: range, placeholder: '전체 (예: 1-3, 5)', 'aria-label': '인쇄할 쪽', style: { width: '150px', height: '30px' },
+        oninput: (e) => { range = e.target.value; const ok = sel(); rangeIn.classList.toggle('bad', !ok); count.textContent = ok ? `${ok.size}/${pages.length}쪽 인쇄` : '쪽 번호를 확인하세요'; drawStage(); } });
+      const count = h('b', { class: 'small num' }, s ? `${s.size}/${pages.length}쪽 인쇄` : '쪽 번호를 확인하세요');
+      bar.append(
+        h('h3', null, '출력 미리보기'), h('span', { class: 'small muted pv-title' }, spec.title || ''),
+        spec.papers ? field('용지', seg(spec.papers.map((p) => [p, p]), opts.paper, (v) => { opts.paper = v; rebuild(); }, '용지')) : h('span', { class: 'chip' }, opts.paper),
+        ...(spec.controls || []).map((c) => field(c.label, seg(c.options, opts[c.key], (v) => { opts[c.key] = v; rebuild(); }, c.label))),
+        h('span', { class: 'spacer' }),
+        field('쪽', rangeIn),
+        h('label', { class: 'pv-field', style: { cursor: 'pointer' } }, h('input', { type: 'checkbox', checked: gray, onchange: (e) => { gray = e.target.checked; ov.classList.toggle('gray', gray); } }), h('span', null, '흑백')),
+        field('보기', seg([['fit', '맞춤'], [0.5, '50%'], [0.75, '75%'], [1, '100%']], zoom, (v) => { zoom = v; drawBar(); drawStage(); }, '확대')),
+        count,
+        h('button', { class: 'btn sm', onclick: close }, '닫기'),
+        h('button', { class: 'btn sm primary', id: 'pv-print', disabled: !pages.length, onclick: doPrint, html: icon('printer') + '인쇄' }));
+      tip.innerHTML = '';
+      tip.append(
+        warnings.length ? h('span', { class: 'wb-warn' }, `확인할 것 ${warnings.length}개: ${warnings.slice(0, 2).join(' / ')}${warnings.length > 2 ? ' …' : ''}`) : h('span', null, '잘린 곳 없음'),
+        h('span', null, ' · 인쇄 창에서 대상(프린터)을 "PDF로 저장"으로 고르면 PDF 파일로 저장돼요. 배율은 "기본값(100%)"으로 두세요.'));
+    }
+    function drawStage() {
+      stage.innerHTML = '';
+      if (!pages.length) { stage.append(h('div', { class: 'pv-empty' }, '출력할 내용이 없어요.')); return; }
+      const pw = dims[0][0] || 800;
+      const z = zoom === 'fit' ? Math.min(1, Math.max(0.25, (stage.clientWidth - 64) / pw)) : +zoom;
+      const s = sel() || new Set();
+      pages.forEach((p, i) => {
+        const [w, ph] = dims[i];
+        stage.append(h('div', { class: 'pv-page' + (s.has(i) ? '' : ' off') },
+          h('div', { class: 'sheet-wrap', style: { width: w * z + 'px', height: ph * z + 'px' } }, h('div', { class: 'sheet-scale', style: { transform: `scale(${z})` } }, p)),
+          h('div', { class: 'lab' }, `${i + 1} / ${pages.length}`)));
+      });
+    }
+    async function doPrint() {
+      const s = sel();
+      if (!s) return A.toast('인쇄할 쪽 번호를 확인해 주세요 (예: 1-3, 5)', 'bad');
+      const btn = bar.querySelector('#pv-print'); if (btn) btn.disabled = true;
+      try { await printPages(pages.filter((_, i) => s.has(i)), opts.paper, { gray, flow: spec.flow, margin: spec.margin }); }
+      finally { if (btn) btn.disabled = false; }
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+    }
+    let rT = null;
+    const onResize = () => { clearTimeout(rT); rT = setTimeout(() => zoom === 'fit' && drawStage(), 150); };
+    function close() {
+      document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('resize', onResize);
+      ov.remove();
+      openOverlay = null;
+      prevFocus?.focus?.();
+    }
+    document.addEventListener('keydown', onKey, true);
+    window.addEventListener('resize', onResize);
+    openOverlay = { close, print: doPrint, get pages() { return pages; }, get opts() { return opts; }, setRange: (r) => { range = r; drawBar(); drawStage(); } };
+    rebuild();
+    (document.fonts?.ready || Promise.resolve()).then(() => { if (openOverlay && ov.isConnected) rebuild(); });
+    setTimeout(() => bar.querySelector('#pv-print')?.focus(), 50);
+    return openOverlay;
+  }
+
+  // 쪽 단위로 나누는 도우미: 블록을 차례로 넣다가 넘치면 새 쪽
+  function paginate(blocks, newSheet) {
+    const pages = [], warnings = [];
+    let cur = newSheet(0);
+    pages.push(cur.sheet);
+    const fits = (el) => el.scrollHeight <= el.clientHeight + 1;
+    for (const b of blocks) {
+      if (b.newPage && cur.body.children.length) { cur = newSheet(pages.length, b); pages.push(cur.sheet); }
+      cur.body.append(b.el);
+      if (fits(cur.body)) continue;
+      if (cur.body.children.length > 1) {
+        b.el.remove();
+        cur = newSheet(pages.length, b);
+        pages.push(cur.sheet);
+        cur.body.append(b.el);
+      }
+      if (!fits(cur.body)) warnings.push(`${b.label || '내용'}이(가) 한 쪽보다 길어 잘려요`);
+    }
+    return { pages, warnings };
+  }
+
+  A.print = { preview, register, openCurrent, printPages, paginate, parseRange, PAPER, MM, get isOpen() { return !!openOverlay; }, get overlay() { return openOverlay; } };
+})(window.App);
+
+</script>
+<script>
 /* 국어 스튜디오 - 입력 읽기, 전처리, OCR 엔진과 대체 순서 */
 (function (A) {
   'use strict';
@@ -1994,7 +2223,8 @@ ${listing}`;
         h('div', null, h('div', { class: 'lbl', style: { marginBottom: '6px' } }, '학부모 상담용 요약'), h('div', { style: { lineHeight: '1.8', fontSize: '13.5px' } }, a.summary.map((t) => h('p', { style: { margin: '0 0 6px' } }, t)))),
         h('div', { class: 'row' }, h('span', { class: 'small muted' }, '확인한 문항은 시험지 제작의 동형 설계도에 바로 쓸 수 있어요.'), h('span', { class: 'spacer' }),
           h('button', { class: 'btn sm', onclick: () => A.go('build', { doc: d.id }) }, '이 분석으로 시험지 제작'),
-          h('button', { class: 'btn sm', onclick: () => printReport(rep, d) , html: icon('printer') + 'PDF로 인쇄' })));
+          h('button', { class: 'btn sm', title: '인쇄하거나 PDF로 저장 (Ctrl+P)', onclick: () => printReport(rep, d), html: icon('printer') + '출력 미리보기' })));
+      A.print.register(() => reportSpec(rep, d));
       return rep;
     }
 
@@ -2011,12 +2241,21 @@ ${listing}`;
         h('p', { class: 'small muted' }, '시연판의 전용 OCR은 브라우저 안에서 도는 Tesseract입니다. 서비스 단계에서 Upstage/CLOVA 같은 한국어 문서 OCR로 바꾸면 신뢰도가 크게 올라가요.'));
     }
 
-    function printReport(node, d) {
-      const pr = document.getElementById('print-root');
-      pr.innerHTML = '';
-      pr.append(h('div', { style: { padding: '16mm', fontFamily: 'Pretendard, sans-serif' } }, h('h1', { style: { fontSize: '20pt', marginBottom: '6mm' } }, `${d.title} 분석 리포트`), node.cloneNode(true)));
-      window.print();
+    // 분석 리포트는 흐르는 글: 쪽 나눔은 브라우저가 함 (A4 여백 14mm)
+    function reportSpec(node, d) {
+      return {
+        title: `${d.title} 분석 리포트`, paper: 'A4', papers: ['A4', 'B4'], flow: true, margin: 14,
+        build: (opts) => {
+          const [w, hh] = A.print.PAPER[opts.paper]; const MM = A.print.MM;
+          const body = node.cloneNode(true);
+          body.querySelectorAll('button').forEach((b) => b.remove());
+          return { pages: [h('div', { class: 'print-flow', style: { width: w * MM + 'px', minHeight: hh * MM + 'px', padding: 14 * MM + 'px' } },
+            h('h1', { style: { fontSize: '20pt', margin: '0 0 6mm' } }, `${d.title} 분석 리포트`),
+            h('div', { class: 'small muted', style: { marginBottom: '5mm' } }, [A.Settings.get().brand.academyName, new Date().toLocaleDateString('ko-KR')].filter(Boolean).join(' · ')), body)] };
+        },
+      };
     }
+    function printReport(node, d) { A.print.preview(reportSpec(node, d)); }
     function exportTxt(d) {
       const t = d.pages.map((p) => `=== ${p.page_no}쪽 ===\n` + p.lines.map((l) => l.text).join('\n')).join('\n\n');
       A.download(`${d.title}.txt`, t);
@@ -2326,6 +2565,7 @@ ${doc.text}`;
         h('div', { class: 'card-b row', style: { borderTop: '1px solid var(--line)' } },
           h('span', { class: 'small muted' }, '주석은 원문 위치에 묶여 있어 레이아웃·필기량을 바꿔도 그대로예요.'), h('span', { class: 'spacer' }),
           h('button', { class: 'btn sm', onclick: () => { doc = { id: A.uid('an_'), title: '', author: '', text: '', genre: '비문학', notes: [], density: doc.density, layout: doc.layout, created_at: Date.now(), scale20: true }; A.annoDraft = doc; draw(); } }, '새 지문'),
+          h('button', { class: 'btn sm', disabled: !doc.text.trim(), title: '인쇄하거나 PDF로 저장 (Ctrl+P)', onclick: openPrint, html: A.icon('printer') + '출력 미리보기' }),
           h('button', { class: 'btn sm primary', onclick: async () => { doc.saved_at = Date.now(); const { _t, ...clean } = doc; await A.DB.put('annotations', clean); A.toast('자료함에 저장했어요'); } }, '자료함에 저장')));
       root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, '주석 달기'), h('p', null, '지문을 넣으면 바로 주석이 달립니다. 필기량과 레이아웃(날개형·노트형·빈칸형)을 바꿔도 다시 만들지 않아요.'))),
         h('div', { class: 'anno' }, left, right));
@@ -2342,6 +2582,9 @@ ${doc.text}`;
           h('button', { title: '숨기기', 'aria-label': `숨기기: ${n.quote}`, onclick: () => { n.hidden = true; draw(); } }, '숨김')),
         h('span', { class: 'tiny muted num', title: '중요도 1~20 (낮을수록 중요, 필기량이 이 값 이상이면 보임)' }, rankOf(n)));
     }
+    const printSpec = () => annoPrintSpec([{ doc, density: doc.density, hide: hideCats }], doc.title || '주석', doc.layout);
+    function openPrint() { if (!doc.text.trim()) return A.toast('원문을 먼저 넣어 주세요', 'bad'); A.print.preview(printSpec()); }
+    A.print.register(printSpec);
     function rerun() { const keep = doc.notes.filter((n) => n.source !== 'rule'); doc.notes = [...ruleNotes(doc.text, doc.genre), ...keep]; draw(); }
     function runAI() {
       if (!A.llm.ready('annotate')) { A.toast('AI 키가 연결되지 않았어요. 설정 > AI 모델에서 연결해 주세요.', 'bad'); return A.go('settings', { s: 'ai' }); }
@@ -2358,6 +2601,74 @@ ${doc.text}`;
     if (A.llm.status.via === 'unknown') A.llm.refresh().then(() => { if (root.isConnected) draw(); });
     return { cleanup: unsub };
   });
+
+  // ---------- 출력 (주석 달기·주석교재 공통) ----------
+  const PSIZE = { s: [10, 7.5], m: [11, 8.5], l: [12.5, 9.5] };
+  const BLANK_CATS = ['어휘', '출제포인트', '현대어풀이', '구조'];
+  function printVisible(u) { return u.doc.notes.filter((n) => n.start >= 0 && !n.hidden && !(u.hide && u.hide.has(n.category)) && (n.pinned || rankOf(n) <= u.density)); }
+  function annoPrintSpec(units, title, layout) {
+    const S0 = A.Settings.get();
+    return {
+      title, paper: S0.output.paper || 'B4', papers: ['A4', 'B4'],
+      controls: [
+        { key: 'layout', label: '모양', value: layout || 'wing', options: [['wing', '날개형'], ['note', '노트형'], ['blank', '빈칸형']] },
+        { key: 'size', label: '글자', value: 'm', options: [['s', '작게'], ['m', '보통'], ['l', '크게']] },
+      ],
+      build(opts, host) {
+        const S = A.Settings.get();
+        const MM = A.print.MM;
+        const [wmm, hmm] = A.print.PAPER[opts.paper];
+        const [tp, np] = PSIZE[opts.size] || PSIZE.m;
+        const accent = S.brand.accent || '#904ae8';
+        const blocks = [];
+        units.forEach((u, ui) => {
+          const doc = u.doc, vis = printVisible(u), key = [];
+          let off = 0, no = 0, bn = 0, first = true;
+          for (const t of doc.text.split('\n')) {
+            const o = off; off += t.length + 1;
+            if (!t.trim()) { if (!first) blocks.push({ el: h('div', { class: 'ps-gap' }), unit: ui }); continue; }
+            no++;
+            const mine = vis.filter((n) => n.start >= o && n.start < o + t.length).sort((a, b) => a.start - b.start);
+            const tx = h('div', { class: 'tx', style: { fontSize: tp + 'pt' } });
+            let cur = o;
+            for (const n of mine) {
+              if (n.start < cur) continue;
+              tx.append(document.createTextNode(doc.text.slice(cur, n.start)));
+              const e = Math.min(n.end, o + t.length);
+              const blank = opts.layout === 'blank' && BLANK_CATS.includes(n.category);
+              if (blank) { bn++; key.push(doc.text.slice(n.start, e)); tx.append(h('sup', null, `(${bn})`)); }
+              tx.append(h('mark', { class: blank ? 'blank' : '', style: { borderColor: CAT[n.category], background: S.annotation.autoHighlight && !blank ? CAT[n.category] + '14' : 'transparent' } }, doc.text.slice(n.start, e)));
+              cur = e;
+            }
+            tx.append(document.createTextNode(doc.text.slice(cur, o + t.length)));
+            const notes = mine.map((n) => h('div', { class: 'ps-note', style: { borderColor: CAT[n.category], fontSize: np + 'pt' } }, h('b', { style: { color: CAT[n.category] } }, n.category), n.note));
+            const row = h('div', { class: 'ps-row ' + (opts.layout === 'note' ? 'note' : 'wing') }, h('div', { class: 'no' }, no), tx, opts.layout !== 'note' || notes.length ? h('div', { class: 'ps-notes' }, notes) : null);
+            blocks.push({ el: row, unit: ui, newPage: first && ui > 0, label: `${doc.title || '지문'} ${no}행` });
+            first = false;
+          }
+          if (key.length) blocks.push({ el: h('div', { class: 'ps-key' }, h('h4', null, `빈칸 정답 · ${doc.title || '지문'}`), h('ol', null, key.map((k) => h('li', null, k)))), unit: ui, label: '빈칸 정답' });
+        });
+        const newSheet = (i, b) => {
+          const u = units[b ? b.unit : 0], doc = u.doc;
+          const head = !b || b.newPage || i === 0;
+          const hdr = head
+            ? h('div', { class: 'ps-hdr', style: { borderColor: accent } },
+              h('div', null, h('div', null, h('span', { class: 't' }, doc.title || '제목 없음'), doc.author ? h('span', { class: 'a' }, doc.author) : null),
+                h('div', { class: 's' }, `${doc.genre || ''} · 필기량 ${u.density}/${DMAX} · 주석 ${printVisible(u).length}개`)),
+              h('div', { class: 'r' }, S.brand.academyName || '', h('br'), new Date().toLocaleDateString('ko-KR')))
+            : h('div', { class: 'ps-hdr cont', style: { borderColor: '#d4d4d8' } }, h('span', { class: 't' }, `${doc.title || '지문'} (계속)`), h('span', { class: 'r' }, S.brand.academyName || ''));
+          const body = h('div', { class: 'ps-body' });
+          const sheet = h('div', { class: 'sheet ps', style: { width: wmm * MM + 'px', height: hmm * MM + 'px', padding: `${12 * MM}px ${14 * MM}px ${10 * MM}px` } }, hdr, body,
+            h('div', { class: 'ftr', style: { marginTop: 3 * MM + 'px' } }, h('span', null, [S.brand.academyName, S.brand.footerText].filter(Boolean).join(' · ')), h('span', { class: 'pn' })));
+          host.append(sheet);
+          return { sheet, body };
+        };
+        const r = A.print.paginate(blocks, newSheet);
+        r.pages.forEach((p, i) => { p.querySelector('.pn').textContent = `${i + 1} / ${r.pages.length}`; });
+        return r;
+      },
+    };
+  }
 
   function estimatePages(doc, vis) {
     const lines = doc.text.split('\n').length;
@@ -2395,6 +2706,7 @@ ${doc.text}`;
               h('div', { class: 'row' }, h('span', { class: 'small' }, '목표 쪽수'), h('input', { class: 'input', type: 'number', min: 0, value: target || '', placeholder: '없음', style: { width: '90px' }, oninput: (e) => { target = +e.target.value || 0; draw(); } }),
                 target ? h('span', { class: 'chip ' + (fitDensity === density ? 'ok' : 'warn') }, `맞추려면 필기량 ${fitDensity}`) : null,
                 target && fitDensity !== density ? h('button', { class: 'btn sm', onclick: () => { density = fitDensity; draw(); } }, '적용') : null),
+              h('div', { class: 'row' }, h('button', { class: 'btn sm primary', disabled: !units.length, onclick: () => A.print.preview(bookSpec()), html: A.icon('printer') + '교재 출력 미리보기' }), h('span', { class: 'small muted' }, units.length ? `작품 ${units.length}개를 작품마다 새 쪽에서 시작해요` : '작품을 골라 주세요')),
               h('div', { class: 'stats' }, h('div', { class: 'stat' }, h('div', { class: 'k' }, '예상 분량 (B4 2단)'), h('div', { class: 'v' }, total + '쪽')), h('div', { class: 'stat' }, h('div', { class: 'k' }, '첨부자료'), h('div', { class: 'v' }, att.size + '개'))),
               h('div', { class: 'small muted' }, '단계별 구성: 1~4 핵심만(출제포인트·기출) → 5~8 간결(+핵심 어휘) → 9~12 보통(+표현법·화자) → 13~16 풍부(+현대어 풀이·배경) → 17~20 촘촘(+문법·보충 전부)'))),
           h('div', { class: 'card', style: { gridColumn: '1 / -1' } }, h('div', { class: 'card-h' }, h('h3', null, '첨부자료 (역할별 가중치)'), h('a', { href: '#/exam?mode=text', class: 'small' }, '첨부자료 텍스트화하기')),
@@ -2404,10 +2716,12 @@ ${doc.text}`;
               h('td', { class: 'small muted' }, att.has(d.id) ? h('span', { class: 'chip' }, '준비 중') : '-'))))) : h('div', { class: 'empty' }, '시험지 분석·저장에서 프린트나 교재를 텍스트화해 저장하면 첨부자료로 쓸 수 있어요.'),
               h('div', { class: 'row small muted' }, h('span', { class: 'chip' }, '준비 중'), '구조도(시상 전개도·인물 관계도·문단 구조도)와 첨부자료-지문 정렬')))));
     }
+    const bookSpec = () => { const units = annos.filter((a) => sel.has(a.id)).map((d) => ({ doc: d, density })); return annoPrintSpec(units, `주석교재 · 작품 ${units.length}개`, A.Settings.get().annotation.layout); };
+    A.print.register(() => { if (!sel.size) A.toast('작품을 골라 주세요', 'bad'); return bookSpec(); });
     draw();
   });
 
-  A.annotate = { ruleNotes, anchor, detectGenre };
+  A.annotate = { ruleNotes, anchor, detectGenre, printSpec: annoPrintSpec };
 })(window.App);
 
 </script>
@@ -2924,7 +3238,7 @@ ${doc.text}`;
         h('button', { class: 'btn sm', onclick: () => { zoom = Math.min(1.2, +(zoom + 0.1).toFixed(2)); drawPreview(); } }, '+'),
         h('span', { class: 'spacer' }),
         h('span', { class: 'small', id: 'pc' }),
-        h('button', { class: 'btn sm primary', onclick: printAll, html: icon('printer') + 'PDF로 인쇄' }));
+        h('button', { class: 'btn sm primary', title: '인쇄하거나 PDF로 저장 (Ctrl+P)', onclick: printAll, html: icon('printer') + '출력 미리보기' }));
       center.append(tb, canvas);
       const { total } = layout(canvas);
       pageCount = total;
@@ -2962,15 +3276,13 @@ ${doc.text}`;
       drawLeft(); drawPreview();
       A.toast(`${ok[0]}pt · 줄 간격 ${Math.round(ok[1] * 100)}% · 여백 ${ok[2]}mm로 ${pageCount}쪽에 맞췄어요`);
     }
-    function printAll() {
-      const pr = document.getElementById('print-root');
-      pr.innerHTML = '';
-      pr.setAttribute('aria-hidden', 'true');
-      const [wmm, hmm] = PAPER[st.paper];
-      pr.append(h('style', null, `@page { size: ${wmm}mm ${hmm}mm; margin: 0 }`));
-      sheets.forEach((s) => { const c = s.cloneNode(true); c.style.boxShadow = 'none'; pr.append(c); });
-      window.print();
-    }
+    // 출력: 작업대에서 조판한 쪽을 그대로 미리보기·인쇄 (용지·글꼴은 작업대에서 바꿈)
+    const printSpec = () => ({
+      title: (st.brand.title || blocksFrom().title) + ` · ${st.paper} ${st.columns}단`, paper: st.paper,
+      build: () => ({ pages: sheets.map((s) => { const c = s.cloneNode(true); c.querySelectorAll('.hdr-hint').forEach((x) => x.remove()); c.querySelectorAll('.hdr').forEach((x) => { x.style.cursor = 'default'; x.removeAttribute('title'); }); return c; }), warnings: [...warnings] }),
+    });
+    function printAll() { A.print.preview(printSpec()); }
+    A.print.register(printSpec);
     const onKey = (e) => {
       if (!(e.ctrlKey || e.metaKey) || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
       if (e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
@@ -3252,6 +3564,7 @@ ${doc.text}`;
   A.$('#drawer-close').addEventListener('click', () => A.toggleDrawer(false));
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); A.openPalette(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') { e.preventDefault(); A.print.openCurrent(); }
   });
   A.Jobs.on(A.renderJobs);
   A.renderJobs();
