@@ -35,7 +35,8 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { font: 14px/1.55 var(--font); color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased; }
+:root { --font-ui: var(--font); --font-paper: "Noto Serif KR", "Nanum Myeongjo", "Batang", "바탕", "AppleMyungjo", serif; --font-note: var(--font); --paper-size: 16px; --note-size: 12px; }
+body { font: 14px/1.55 var(--font-ui); color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--accent); text-decoration: none; }
 h1, h2, h3, h4 { margin: 0; letter-spacing: -0.02em; }
@@ -261,12 +262,12 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .anno-line { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(180px, 38%); gap: 14px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
 .anno-out.note .anno-line { grid-template-columns: 28px minmax(0, 1fr); }
 .anno-line .ln-no { font: 11px var(--mono); color: var(--muted); padding-top: 5px; text-align: right; }
-.anno-line .tx { font-family: "Noto Serif KR", "Nanum Myeongjo", "Batang", "바탕", "AppleMyungjo", serif; font-size: 16px; line-height: 2.1; }
+.anno-line .tx { font-family: var(--font-paper); font-size: var(--paper-size); line-height: 2.1; }
 .anno-line .notes { display: flex; flex-direction: column; gap: 4px; padding-top: 3px; }
 .anno-out.note .anno-line .notes { grid-column: 2; padding-top: 0; }
 mark.a { background: transparent; border-bottom: 2px solid; padding: 0 1px; cursor: pointer; color: inherit; }
 mark.a.blank { color: transparent; border-bottom: 1.5px solid var(--fg); background: transparent; }
-.note { font-size: 12px; line-height: 1.5; border-left: 3px solid; padding: 2px 8px; border-radius: 0 5px 5px 0; background: var(--panel-2); display: flex; gap: 6px; align-items: flex-start; }
+.note { font-family: var(--font-note); font-size: var(--note-size); line-height: 1.5; border-left: 3px solid; padding: 2px 8px; border-radius: 0 5px 5px 0; background: var(--panel-2); display: flex; gap: 6px; align-items: flex-start; }
 .note .cat { font-weight: 700; white-space: nowrap; }
 .note .txt { flex: 1; outline: none; }
 .note .acts { display: none; gap: 2px; }
@@ -323,7 +324,7 @@ mark.a.blank { color: transparent; border-bottom: 1.5px solid var(--fg); backgro
 .thumbw .tb { background: #fff; box-shadow: 0 0 0 1px var(--line-2); overflow: hidden; position: relative; }
 .thumbw.on .tb { box-shadow: 0 0 0 2px var(--accent); }
 .sheet-scale { transform-origin: top left; }
-.sheet { background: #fff; color: #18181b; position: relative; box-shadow: 0 2px 10px rgba(0,0,0,.18); overflow: hidden; display: flex; flex-direction: column; font-family: "Noto Serif KR", "Nanum Myeongjo", "Batang", "바탕", "AppleMyungjo", serif; }
+.sheet { background: #fff; color: #18181b; position: relative; box-shadow: 0 2px 10px rgba(0,0,0,.18); overflow: hidden; display: flex; flex-direction: column; font-family: var(--font-paper); }
 .sheet .hdr { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 6mm; background-repeat: no-repeat; font-family: var(--font); cursor: pointer; flex: none; }
 .sheet .hdr.drop-over { outline: 3px dashed #904ae8; outline-offset: -3px; }
 .sheet .hdr .ht { font-weight: 700; font-size: 13pt; letter-spacing: -0.02em; position: relative; z-index: 1; }
