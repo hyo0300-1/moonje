@@ -3,5 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "description": "비해당학원 국어 스튜디오 (시연판)",
-  "scripts": { "dev": "node dev-server.js" }
+  "scripts": { "dev": "node dev-server.js" },
+  "dependencies": { "@vercel/functions": "latest" }
 }
