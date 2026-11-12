@@ -118,7 +118,8 @@
       const taskRows = Object.entries(A.llm.TASKS).map(([t, label]) => {
         const p = draft.ai.tasks[t];
         const ok = A.llm.serverKey(p) || !!draft.ai.keys[p];
-        return row('ai.tasks.' + t, label, ok ? `${L.PROVIDER_LABEL[p]} · ${draft.ai.models[p]}` : `${L.PROVIDER_LABEL[p]} 키가 없어요. 키를 넣거나 다른 AI를 고르세요.`,
+        const alt = !ok && L.PROVIDERS.find((q) => A.llm.serverKey(q) || !!draft.ai.keys[q]);
+        return row('ai.tasks.' + t, label, ok ? `${L.PROVIDER_LABEL[p]} · ${draft.ai.models[p]}` : alt ? `${L.PROVIDER_LABEL[p]} 키가 없어 지금은 ${L.PROVIDER_LABEL[alt]} · ${draft.ai.models[alt]}로 대신 처리해요.` : `${L.PROVIDER_LABEL[p]} 키가 없어요. 키를 넣거나 다른 AI를 고르세요.`,
           h('select', { class: 'input', onchange: (e) => { update('ai.tasks.' + t, e.target.value); draw(); } }, L.PROVIDERS.map((q) => h('option', { value: q, selected: q === p }, L.PROVIDER_LABEL[q]))));
       });
       return sec('ai', 'AI 모델', '시험지 판독·구조화·주석에 쓸 AI를 고릅니다. 키는 서버 환경 변수에 두는 것이 가장 안전해요.',

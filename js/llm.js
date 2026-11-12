@@ -27,7 +27,13 @@
     key(p) { return (A.Settings.get().ai.keys || {})[p] || ''; },
     serverKey(p) { return !!(this.status.providers[p] && this.status.providers[p].server); },
     usable(p) { return this.serverKey(p) || !!this.key(p); },
-    providerFor(task) { return (A.Settings.get().ai.tasks || {})[task] || 'gemini'; },
+    // 작업에 고른 AI에 키가 없으면 키가 있는 AI로 자동 대체
+    chosenFor(task) { return (A.Settings.get().ai.tasks || {})[task] || 'gemini'; },
+    providerFor(task) {
+      const p = this.chosenFor(task);
+      if (this.usable(p)) return p;
+      return L.PROVIDERS.find((q) => this.usable(q)) || p;
+    },
     modelFor(p) { return (A.Settings.get().ai.models || {})[p] || L.DEFAULT_MODEL[p]; },
     ready(task) { return this.usable(this.providerFor(task)); },
     label(task) { const p = this.providerFor(task); return `${L.PROVIDER_LABEL[p]} · ${this.modelFor(p)}`; },
