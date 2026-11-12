@@ -415,6 +415,160 @@ mark.a.blank { color: transparent; border-bottom: 1.5px solid var(--fg); backgro
 <div id="print-root" aria-hidden="true"></div>
 
 <script>
+/* 국어 스튜디오 - LLM 공통 호출 (브라우저·Vercel 함수·개발 서버가 같이 씀)
+ * 입력 parts: [{ text: '...' }, { image: { mime: 'image/jpeg', data: '<base64>' } }]
+ * 출력: { text, json, finishReason: STOP|MAX_TOKENS|SAFETY|RECITATION|REFUSAL|OTHER, usage: { input, output }, provider, model, ms }
+ * 모델 목록 기준: 2026-11-12 각 사 공식 문서 */
+(function (root) {
+  'use strict';
+
+  const MODELS = {
+    gemini: [
+      { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', note: '빠름·기본 추천' },
+      { id: 'gemini-4-argon', label: 'Gemini 4 Argon', note: '고성능 추론 (유료 등급)' },
+      { id: 'gemini-4-carbon', label: 'Gemini 4 Carbon', note: '최상위 (유료 등급)' },
+      { id: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite', note: '가장 저렴' },
+    ],
+    openai: [
+      { id: 'gpt-6.1-terra', label: 'GPT-6.1 Terra', note: '빠름·이미지 판독 강함·기본 추천' },
+      { id: 'gpt-6.1-sol', label: 'GPT-6.1 Sol', note: '성능과 비용 균형' },
+      { id: 'gpt-6-astra', label: 'GPT-6 Astra', note: '최상위' },
+      { id: 'gpt-6-luna', label: 'GPT-6 Luna', note: '가장 저렴' },
+    ],
+    anthropic: [
+      { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', note: '속도·성능 균형·기본 추천' },
+      { id: 'claude-opus-5-5', label: 'Claude Opus 5.5', note: '고성능' },
+      { id: 'claude-fable-5-2', label: 'Claude Fable 5.2', note: '최상위 추론' },
+      { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', note: '가장 빠름·저렴' },
+    ],
+  };
+  const PROVIDERS = Object.keys(MODELS);
+  const PROVIDER_LABEL = { gemini: 'Google Gemini', openai: 'OpenAI', anthropic: 'Anthropic Claude' };
+  const DEFAULT_MODEL = { gemini: 'gemini-3.8-flash', openai: 'gpt-6.1-terra', anthropic: 'claude-sonnet-5-5' };
+
+  function fail(message, extra) { return Object.assign(new Error(message), extra || {}); }
+
+  // 모델이 JSON을 코드 블록이나 설명과 섞어 줄 때도 꺼내 씀
+  function parseJsonLoose(text) {
+    if (!text) return null;
+    const t = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+    try { return JSON.parse(t); } catch (e) { /* 계속 */ }
+    const a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch (e) { /* 실패 */ } }
+    return null;
+  }
+
+  function normParts(parts) {
+    return (parts || []).map((p) => {
+      if (p == null) return null;
+      if (typeof p === 'string') return { text: p };
+      if (p.text != null) return { text: String(p.text) };
+      if (p.image) return { image: { mime: p.image.mime || 'image/jpeg', data: p.image.data } };
+      if (p.inline_data) return { image: { mime: p.inline_data.mime_type, data: p.inline_data.data } };
+      return null;
+    }).filter(Boolean);
+  }
+
+  async function readError(res, provider) {
+    let msg = '';
+    try { const j = await res.json(); msg = j?.error?.message || j?.message || JSON.stringify(j).slice(0, 300); } catch (e) { try { msg = (await res.text()).slice(0, 300); } catch (e2) { /* 없음 */ } }
+    const code = res.status === 401 || res.status === 403 || /api key not valid|invalid.*api.?key/i.test(msg) ? 'BAD_KEY' : res.status === 404 ? 'MODEL_NOT_FOUND' : res.status === 429 ? 'RATE_LIMIT' : 'PROVIDER_HTTP_' + res.status;
+    return fail(`${PROVIDER_LABEL[provider]} 오류 ${res.status}: ${msg}`, { code, status: res.status, provider });
+  }
+
+  // ---------- Gemini ----------
+  async function callGemini(req, key, fetchFn) {
+    const parts = normParts(req.parts).map((p) => (p.text != null ? { text: p.text } : { inline_data: { mime_type: p.image.mime, data: p.image.data } }));
+    const body = { contents: [{ role: 'user', parts }], generationConfig: {} };
+    if (req.system) body.systemInstruction = { parts: [{ text: req.system }] };
+    if (req.json) body.generationConfig.responseMimeType = 'application/json';
+    if (req.maxTokens) body.generationConfig.maxOutputTokens = req.maxTokens;
+    if (req.temperature != null) body.generationConfig.temperature = req.temperature;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(req.model)}:generateContent`;
+    const res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
+    if (!res.ok) throw await readError(res, 'gemini');
+    const d = await res.json();
+    const cand = d.candidates && d.candidates[0];
+    const blocked = d.promptFeedback && d.promptFeedback.blockReason;
+    const fr = String(blocked || (cand && cand.finishReason) || 'OTHER').toUpperCase();
+    const text = ((cand && cand.content && cand.content.parts) || []).filter((p) => !p.thought).map((p) => p.text || '').join('');
+    const finish = fr === 'STOP' ? 'STOP' : fr === 'MAX_TOKENS' ? 'MAX_TOKENS' : fr === 'RECITATION' ? 'RECITATION' : ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII'].includes(fr) ? 'SAFETY' : 'OTHER';
+    const u = d.usageMetadata || {};
+    return { text, finishReason: finish, rawFinish: fr, usage: { input: u.promptTokenCount || 0, output: (u.candidatesTokenCount || 0) + (u.thoughtsTokenCount || 0) } };
+  }
+
+  // ---------- OpenAI (Responses API) ----------
+  async function callOpenAI(req, key, fetchFn) {
+    const content = normParts(req.parts).map((p) => (p.text != null ? { type: 'input_text', text: p.text } : { type: 'input_image', image_url: `data:${p.image.mime};base64,${p.image.data}` }));
+    const body = { model: req.model, input: [{ role: 'user', content }] };
+    const sys = [req.system, req.json ? 'Respond with a single valid JSON object only.' : ''].filter(Boolean).join('\n');
+    if (sys) body.instructions = sys;
+    if (req.json) body.text = { format: { type: 'json_object' } };
+    if (req.maxTokens) body.max_output_tokens = req.maxTokens;
+    const res = await fetchFn('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + key }, body: JSON.stringify(body) });
+    if (!res.ok) throw await readError(res, 'openai');
+    const d = await res.json();
+    let text = '', refusal = '';
+    for (const o of d.output || []) {
+      if (o.type !== 'message') continue;
+      for (const c of o.content || []) {
+        if (c.type === 'output_text') text += c.text || '';
+        if (c.type === 'refusal') refusal += c.refusal || '';
+      }
+    }
+    if (!text && typeof d.output_text === 'string') text = d.output_text;
+    const reason = d.incomplete_details && d.incomplete_details.reason;
+    const finish = refusal && !text ? 'REFUSAL' : d.status === 'completed' ? 'STOP' : reason === 'max_output_tokens' ? 'MAX_TOKENS' : reason === 'content_filter' ? 'SAFETY' : 'OTHER';
+    const u = d.usage || {};
+    return { text, finishReason: finish, rawFinish: d.status + (reason ? ':' + reason : ''), refusal, usage: { input: u.input_tokens || 0, output: u.output_tokens || 0 } };
+  }
+
+  // ---------- Anthropic (Messages API) ----------
+  async function callAnthropic(req, key, fetchFn, opts) {
+    const content = normParts(req.parts).map((p) => (p.text != null ? { type: 'text', text: p.text } : { type: 'image', source: { type: 'base64', media_type: p.image.mime, data: p.image.data } }));
+    const sys = [req.system, req.json ? '반드시 JSON 객체 하나만 출력하라. 설명이나 코드 블록 표시는 쓰지 마라.' : ''].filter(Boolean).join('\n');
+    const body = { model: req.model, max_tokens: req.maxTokens || 16000, messages: [{ role: 'user', content }] };
+    if (sys) body.system = sys;
+    const send = (version) => {
+      const headers = { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': version };
+      if (opts && opts.browser) headers['anthropic-dangerous-direct-browser-access'] = 'true';
+      return fetchFn('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify(body) });
+    };
+    let res = await send('2023-06-01');
+    if (res.status === 400) { // 새 API 버전만 받는 모델이면 한 번 더
+      const clone = res.clone ? res.clone() : null;
+      let msg = '';
+      try { msg = clone ? JSON.stringify(await clone.json()) : ''; } catch (e) { /* 무시 */ }
+      if (/version/i.test(msg)) res = await send('2026-10-21');
+    }
+    if (!res.ok) throw await readError(res, 'anthropic');
+    const d = await res.json();
+    const text = (d.content || []).filter((c) => c.type === 'text').map((c) => c.text || '').join('');
+    const sr = d.stop_reason;
+    const finish = sr === 'end_turn' || sr === 'stop_sequence' ? 'STOP' : sr === 'max_tokens' ? 'MAX_TOKENS' : sr === 'refusal' ? 'REFUSAL' : 'OTHER';
+    const u = d.usage || {};
+    return { text, finishReason: finish, rawFinish: sr, usage: { input: (u.input_tokens || 0) + (u.cache_read_input_tokens || 0), output: u.output_tokens || 0 } };
+  }
+
+  async function callProvider(provider, req, key, fetchFn, opts) {
+    if (!PROVIDERS.includes(provider)) throw fail('알 수 없는 AI 회사: ' + provider, { code: 'BAD_PROVIDER' });
+    if (!key) throw fail(`${PROVIDER_LABEL[provider]} 키가 없습니다`, { code: 'NO_KEY', provider });
+    const r0 = { ...req, model: req.model || DEFAULT_MODEL[provider] };
+    const t0 = Date.now();
+    const f = fetchFn || fetch;
+    const r = provider === 'gemini' ? await callGemini(r0, key, f) : provider === 'openai' ? await callOpenAI(r0, key, f) : await callAnthropic(r0, key, f, opts);
+    r.json = r0.json ? parseJsonLoose(r.text) : null;
+    r.provider = provider;
+    r.model = r0.model;
+    r.ms = Date.now() - t0;
+    return r;
+  }
+
+  root.KSLLM = { MODELS, PROVIDERS, PROVIDER_LABEL, DEFAULT_MODEL, callProvider, parseJsonLoose, normParts };
+})(typeof globalThis !== 'undefined' ? globalThis : window);
+
+</script>
+<script>
 /* 국어 스튜디오 - 공통: 유틸, 저장소, 설정, 작업 큐, 라우터, 작업 요청창 */
 window.App = window.App || {};
 (function (A) {
@@ -515,7 +669,7 @@ window.App = window.App || {};
 
   // ---------- 설정 ----------
   const ENGINE_LABEL = {
-    pdf_text: 'PDF 글자 레이어', parsed: '파일 직접 읽기', gemini: 'Gemini 판독', dedicated_ocr: '전용 OCR(로컬)',
+    pdf_text: 'PDF 글자 레이어', parsed: '파일 직접 읽기', gemini: 'AI 판독', dedicated_ocr: '전용 OCR(로컬)',
     tile_mode: '타일 모드', manual: '수동 확인', reference_mode: '참조형 구조화(AI)', rule_based: '규칙 기반 구조화',
   };
   const OUTCOME_LABEL = { ok: '완료', blocked_copyright: '저작권 차단', blocked_safety: '안전 차단', truncated: '잘림', error: '오류', low_quality: '품질 낮음', skipped: '건너뜀' };
@@ -525,7 +679,12 @@ window.App = window.App || {};
     output: { quickAnswers: false, promptTitles: true, answerPlacement: 'end', paper: 'B4' },
     annotation: { density: 3, layout: 'wing', autoHighlight: true },
     ocr: { chain: ['gemini', 'dedicated_ocr', 'tile_mode', 'manual'], disabled: [], structure: ['reference_mode', 'rule_based'], lowConf: 70, enhance: true, lang: 'kor+eng' },
-    ai: { geminiKey: '', model: 'gemini-2.5-flash' },
+    ai: {
+      keys: { gemini: '', openai: '', anthropic: '' },
+      models: { gemini: 'gemini-3.8-flash', openai: 'gpt-6.1-terra', anthropic: 'claude-sonnet-5-5' },
+      tasks: { ocr: 'gemini', structure: 'gemini', annotate: 'gemini' },
+      limits: { gemini: 0, openai: 0, anthropic: 0 },
+    },
     ui: { theme: 'light' },
     notify: { jobDone: true },
   };
@@ -533,7 +692,13 @@ window.App = window.App || {};
     key: 'ks.settings',
     histKey: 'ks.settings.history',
     get() {
-      try { return deepMerge(DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(this.key) || '{}')); } catch { return clone(DEFAULT_SETTINGS); }
+      let s;
+      try { s = deepMerge(DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(this.key) || '{}')); } catch { s = clone(DEFAULT_SETTINGS); }
+      // 예전 설정 옮기기: 단일 Gemini 키 → 회사별 키, 종료 예정 모델 교체
+      if (s.ai.geminiKey && !s.ai.keys.gemini) s.ai.keys.gemini = s.ai.geminiKey;
+      delete s.ai.geminiKey; delete s.ai.model;
+      if (/^gemini-2\.5/.test(s.ai.models.gemini || '')) s.ai.models.gemini = 'gemini-3.8-flash';
+      return s;
     },
     save(next) {
       const prev = this.get();
@@ -542,7 +707,7 @@ window.App = window.App || {};
         for (const k of new Set([...Object.keys(a || {}), ...Object.keys(b || {})])) {
           const av = a?.[k], bv = b?.[k], path = p ? p + '.' + k : k;
           if (av && bv && typeof av === 'object' && !Array.isArray(av)) walk(av, bv, path);
-          else if (JSON.stringify(av) !== JSON.stringify(bv)) diff.push({ path, from: k === 'geminiKey' ? (av ? '••••' : '') : av, to: k === 'geminiKey' ? (bv ? '••••' : '') : bv });
+          else if (JSON.stringify(av) !== JSON.stringify(bv)) { const secret = /^ai\.keys\./.test(path); diff.push({ path, from: secret ? (av ? '••••' : '') : av, to: secret ? (bv ? '••••' : '') : bv }); }
         }
       })(prev, next, '');
       localStorage.setItem(this.key, JSON.stringify(next));
@@ -624,28 +789,16 @@ window.App = window.App || {};
     }
   }
 
-  // ---------- Gemini (설정에 키가 있을 때만 사용) ----------
-  async function gemini(parts, { json = true, temperature = 0 } = {}) {
-    const s = Settings.get();
-    if (!s.ai.geminiKey) { const e = new Error('Gemini 키가 없습니다'); e.code = 'NO_KEY'; throw e; }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(s.ai.model)}:generateContent?key=${encodeURIComponent(s.ai.geminiKey)}`;
-    const body = { contents: [{ role: 'user', parts }], generationConfig: { temperature, ...(json ? { responseMimeType: 'application/json' } : {}) } };
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error(data?.error?.message || `Gemini 오류 ${r.status}`); e.code = 'GEMINI_HTTP_' + r.status; throw e; }
-    const blocked = data?.promptFeedback?.blockReason;
-    const cand = data?.candidates?.[0];
-    const finishReason = blocked || cand?.finishReason || 'UNKNOWN';
-    const text = (cand?.content?.parts || []).map((p) => p.text || '').join('');
-    let parsed = null;
-    if (json && text) { try { parsed = JSON.parse(text); } catch { parsed = null; } }
-    return { finishReason, text, json: parsed };
+  // ---------- 예전 호출 이름 유지: 작업별로 고른 AI(Gemini·OpenAI·Claude)로 보냄 ----------
+  async function gemini(parts, { json = true, task = 'structure' } = {}) {
+    return A.llm.generate({ task, parts, json });
   }
   // 응답 분류 (DB 함수 classify_ocr_outcome 과 동일 규칙)
   function classifyOutcome(finishReason, chars, expected) {
     const f = String(finishReason || '').toUpperCase();
     if (f === 'RECITATION') return 'blocked_copyright';
-    if (['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'OTHER'].includes(f)) return 'blocked_safety';
+    if (['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'OTHER', 'REFUSAL'].includes(f)) return 'blocked_safety';
+    if (f === 'MAX_TOKENS') return 'truncated';
     if (!chars) return 'error';
     if (expected > 0 && chars < expected * 0.5) return 'truncated';
     return 'ok';
@@ -708,7 +861,7 @@ window.App = window.App || {};
     { t: '디자인 작업대에서 배너 바꾸기', k: '디자인 배너 이미지 머리 표지 로고 워터마크', run: () => go('design') },
     { t: '자료함 열기', k: '자료함 저장 보관 목록', run: () => go('library') },
     { t: '설정: OCR 대체 순서', k: '설정 ocr 엔진 대체 저작권 차단 순서', run: () => go('settings', { s: 'ocr' }) },
-    { t: '설정: Gemini 키 넣기', k: '설정 gemini 키 ai api', run: () => go('settings', { s: 'ocr' }) },
+    { t: '설정: AI 모델 연결 (Gemini·OpenAI·Claude)', k: '설정 ai 모델 키 api gemini openai gpt claude 제미나이 클로드', run: () => go('settings', { s: 'ai' }) },
     { t: '설정: 학원 브랜드', k: '설정 학원 브랜드 이름 로고 강조색', run: () => go('settings', { s: 'brand' }) },
     { t: '작업 큐 보기', k: '작업 큐 진행 상태 job', run: () => toggleDrawer(true) },
     { t: '다크 모드 전환', k: '테마 다크 라이트 화면', run: () => toggleTheme() },
@@ -805,7 +958,7 @@ window.App = window.App || {};
       const data = { app: 'kor-studio', version: 1, exported_at: new Date().toISOString(), stores: {}, local: {} };
       for (const s of STORES) data.stores[s] = await DB.all(s);
       for (const k of LS_KEYS) data.local[k] = localStorage.getItem(k);
-      if (data.local['ks.settings']) { try { const st = JSON.parse(data.local['ks.settings']); if (st.ai) st.ai.geminiKey = ''; data.local['ks.settings'] = JSON.stringify(st); } catch {} }
+      if (data.local['ks.settings']) { try { const st = JSON.parse(data.local['ks.settings']); if (st.ai) { st.ai.geminiKey = ''; st.ai.keys = { gemini: '', openai: '', anthropic: '' }; } data.local['ks.settings'] = JSON.stringify(st); } catch {} }
       const d = new Date(), p = (n) => String(n).padStart(2, '0');
       download(`국어스튜디오-백업-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`, JSON.stringify(data), 'application/json');
       localStorage.setItem(this.lastKey, String(Date.now()));
@@ -822,7 +975,7 @@ window.App = window.App || {};
       for (const k of LS_KEYS) {
         if (data.local?.[k] == null) continue;
         if (k === 'ks.settings') { // 지금 쓰는 API 키는 유지
-          try { const cur = Settings.get(); const st = JSON.parse(data.local[k]); st.ai = { ...(st.ai || {}), geminiKey: cur.ai.geminiKey }; localStorage.setItem(k, JSON.stringify(st)); } catch {}
+          try { const cur = Settings.get(); const st = JSON.parse(data.local[k]); st.ai = { ...(st.ai || {}), keys: cur.ai.keys }; delete st.ai.geminiKey; localStorage.setItem(k, JSON.stringify(st)); } catch {}
         } else localStorage.setItem(k, data.local[k]);
       }
       applyTheme();
@@ -832,6 +985,101 @@ window.App = window.App || {};
   };
 
   Object.assign(A, { Backup, $, $$, h, uid, esc, fmtDate, clone, sleep, deepMerge, toast, download, icon, DB, Settings, Jobs, gemini, classifyOutcome, ENGINE_LABEL, OUTCOME_LABEL, route, go, renderRoute, buildNav, openPalette, applyTheme, toggleTheme, toggleDrawer, renderJobs, loadImage, readAs, imageStats, NAV });
+})(window.App);
+
+</script>
+<script>
+/* 국어 스튜디오 - AI 연결 (Gemini · OpenAI · Claude)
+ * 호출 순서: 서버 중계(/api/llm, 키는 서버 환경 변수 또는 화면에서 넣은 키) → 서버가 없으면 브라우저에서 직접
+ * 작업별 AI: ocr(시험지 판독) · structure(구조화) · annotate(주석) */
+(function (A) {
+  'use strict';
+  const L = window.KSLLM;
+  const TASKS = { ocr: '시험지 판독(이미지 → 글자)', structure: '문항 구조화', annotate: '주석 달기' };
+  const USAGE_KEY = 'ks.llm.usage';
+  const month = () => new Date().toISOString().slice(0, 7);
+  const err = (message, code) => Object.assign(new Error(message), { code });
+
+  const llm = {
+    TASKS,
+    status: { via: 'unknown', providers: {} },
+    async refresh() {
+      if (location.protocol === 'file:') { this.status = { via: 'direct', providers: {} }; return this.status; }
+      try {
+        const r = await fetch('/api/llm', { cache: 'no-store' });
+        const ct = r.headers.get('content-type') || '';
+        if (!r.ok || !ct.includes('json')) throw new Error('no server');
+        const j = await r.json();
+        this.status = { via: j.via || 'server', providers: j.providers || {} };
+      } catch (e) { this.status = { via: 'direct', providers: {} }; }
+      A.Jobs && A.Jobs.emit();
+      return this.status;
+    },
+    key(p) { return (A.Settings.get().ai.keys || {})[p] || ''; },
+    serverKey(p) { return !!(this.status.providers[p] && this.status.providers[p].server); },
+    usable(p) { return this.serverKey(p) || !!this.key(p); },
+    providerFor(task) { return (A.Settings.get().ai.tasks || {})[task] || 'gemini'; },
+    modelFor(p) { return (A.Settings.get().ai.models || {})[p] || L.DEFAULT_MODEL[p]; },
+    ready(task) { return this.usable(this.providerFor(task)); },
+    label(task) { const p = this.providerFor(task); return `${L.PROVIDER_LABEL[p]} · ${this.modelFor(p)}`; },
+    keyState(p) { return this.serverKey(p) ? 'server' : this.key(p) ? 'browser' : 'none'; },
+
+    usage(p, m = month()) {
+      const all = JSON.parse(localStorage.getItem(USAGE_KEY) || '{}');
+      const u = (all[m] && all[m][p]) || { req: 0, input: 0, output: 0, fail: 0 };
+      return { ...u, total: u.input + u.output };
+    },
+    track(p, usage, failed) {
+      const all = JSON.parse(localStorage.getItem(USAGE_KEY) || '{}');
+      const m = month();
+      all[m] = all[m] || {};
+      const u = all[m][p] || { req: 0, input: 0, output: 0, fail: 0 };
+      u.req++; if (failed) u.fail++;
+      if (usage) { u.input += usage.input || 0; u.output += usage.output || 0; }
+      all[m][p] = u;
+      localStorage.setItem(USAGE_KEY, JSON.stringify(all));
+    },
+    limit(p) { return +((A.Settings.get().ai.limits || {})[p] || 0); },
+
+    // opts: { task, provider, model, parts:[{text}|{image:{mime,data}}], json, maxTokens, system }
+    async generate(opts) {
+      const provider = opts.provider || this.providerFor(opts.task);
+      const model = opts.model || this.modelFor(provider);
+      const lim = this.limit(provider);
+      if (lim && this.usage(provider).total >= lim) throw err(`${L.PROVIDER_LABEL[provider]} 이번 달 사용 한도(${lim.toLocaleString()} 토큰)에 도달했어요. 설정 > AI 모델에서 한도를 올리거나 다른 AI를 고르세요.`, 'MONTHLY_LIMIT');
+      if (this.status.via === 'unknown') await this.refresh();
+      const body = { provider, model, parts: L.normParts(opts.parts), json: !!opts.json, maxTokens: opts.maxTokens, system: opts.system };
+      const userKey = opts.key || this.key(provider);
+      let r;
+      try {
+        if (this.status.via !== 'direct') {
+          const headers = { 'content-type': 'application/json' };
+          if (!this.serverKey(provider) && userKey) headers['x-ks-key'] = userKey;
+          const res = await fetch('/api/llm', { method: 'POST', headers, body: JSON.stringify(body) });
+          const j = await res.json().catch(() => ({}));
+          if (!res.ok) throw err(j.error ? j.error.message : `AI 호출 실패 (${res.status})`, j.error ? j.error.code : 'HTTP_' + res.status);
+          r = j;
+        } else {
+          const key = userKey;
+          if (!key) throw err(`${L.PROVIDER_LABEL[provider]} 키가 없어요. 설정 > AI 모델에서 넣어 주세요.`, 'NO_KEY');
+          r = await L.callProvider(provider, body, key, window.fetch.bind(window), { browser: true });
+        }
+      } catch (e) {
+        this.track(provider, null, true);
+        if (e.code === 'BAD_KEY') e.message = `${L.PROVIDER_LABEL[provider]} 키가 맞지 않아요. 키를 다시 확인하세요. (${e.message.replace(/^.*?:\s*/, '').slice(0, 80)})`;
+        if (e.code === 'MODEL_NOT_FOUND') e.message = `모델 '${model}'을(를) 찾지 못했어요. 다른 모델을 고르거나 계정 등급(유료 전용 모델 여부)을 확인하세요.`;
+        throw e;
+      }
+      this.track(provider, r.usage, false);
+      return r;
+    },
+    async test(provider, o = {}) {
+      const t0 = performance.now();
+      const r = await this.generate({ provider, model: o.model, key: o.key, parts: [{ text: '연결 확인입니다. JSON {"ok":true} 만 답하세요.' }], json: true, maxTokens: 2000 });
+      return { ms: Math.round(performance.now() - t0), ok: !!(r.json && r.json.ok), model: r.model, keySource: r.keySource || 'browser', usage: r.usage };
+    },
+  };
+  A.llm = llm;
 })(window.App);
 
 </script>
@@ -1010,7 +1258,7 @@ window.App = window.App || {};
       const b64 = page.src.split(',')[1];
       const mime = page.src.slice(5, page.src.indexOf(';'));
       const prompt = '이 시험지 이미지의 글자를 위에서 아래, 왼쪽 단에서 오른쪽 단 순서로 줄 단위로 옮겨라. 고치거나 요약하지 말 것. JSON {"lines":["…"]} 형식으로만 답하라.';
-      const r = await A.gemini([{ text: prompt }, { inline_data: { mime_type: mime, data: b64 } }]);
+      const r = await A.llm.generate({ task: 'ocr', parts: [{ text: prompt }, { image: { mime, data: b64 } }], json: true, maxTokens: 16000 });
       const arr = Array.isArray(r.json?.lines) ? r.json.lines.map((x) => (typeof x === 'string' ? x : x?.text || '')) : [];
       const chars = arr.join('').replace(/\s/g, '').length;
       return { outcome: A.classifyOutcome(r.finishReason, chars, page.expectedChars || 0), finishReason: r.finishReason, lines: arr.filter((t) => t.trim()).map((t) => ({ text: t, bbox: null, confidence: null, status: 'ok' })) };
@@ -1058,8 +1306,9 @@ window.App = window.App || {};
       ctx.log('info', `${tag}: ${A.ENGINE_LABEL[p.kind]} → OCR 없이 바로 사용 (비용 0)`);
     } else {
       p.text_source = 'ocr';
-      const chain = s.ocr.chain.filter((e) => !s.ocr.disabled.includes(e)).filter((e) => e !== 'gemini' || s.ai.geminiKey);
-      if (!s.ai.geminiKey && s.ocr.chain.includes('gemini') && !s.ocr.disabled.includes('gemini')) p.fallback_path.push('gemini:skipped');
+      const aiOk = A.llm.ready('ocr');
+      const chain = s.ocr.chain.filter((e) => !s.ocr.disabled.includes(e)).filter((e) => e !== 'gemini' || aiOk);
+      if (!aiOk && s.ocr.chain.includes('gemini') && !s.ocr.disabled.includes('gemini')) p.fallback_path.push('gemini:skipped');
       for (const eng of chain) {
         if (ctx.cancelled()) throw err('취소됨', 'CANCELLED');
         ctx.log('stage', `${tag}: ${A.ENGINE_LABEL[eng]} 시도`);
@@ -1250,7 +1499,7 @@ JSON 형식: {"sets":[{"from":18,"to":21,"header_ref":"P1-L3","passage_refs":["P
 "domain":"READING|POETRY|NOVEL|SPEECH_WRITING|GRAMMAR|MEDIA","item_type":"FACT|INFER|APPLY|VOCAB|STRUCT|EXPR|CHAR|COMPARE|CRIT|GRAM|MEDIA|SPEECH|WRITE"}]}
 줄 목록:
 ${listing}`;
-    const r = await A.gemini([{ text: prompt }]);
+    const r = await A.llm.generate({ task: 'structure', parts: [{ text: prompt }], json: true, maxTokens: 32000 });
     const j = r.json;
     if (A.classifyOutcome(r.finishReason, (r.text || '').length, 0) !== 'ok' || !j || !Array.isArray(j.items) || !j.items.length) {
       const e = new Error(`참조형 구조화 실패 (${r.finishReason}${j ? '' : ', JSON 아님'})`); e.code = 'REFERENCE_FAILED'; throw e;
@@ -1273,8 +1522,8 @@ ${listing}`;
     const chain = s.structure || s.ocr.structure;
     for (const eng of chain) {
       if (eng === 'reference_mode') {
-        if (!s.ai.geminiKey) { ctx.log('info', '구조화: 참조형(AI)은 Gemini 키가 없어 건너뜀 → 규칙 기반'); continue; }
-        try { ctx.log('stage', '구조화: 참조형(AI, 줄 ID만 응답) 시도'); const st = enrich(await referenceStructure(lines), lines); st.engine = 'reference_mode'; ctx.log('info', `구조화 완료: ${st.items.length}문항 (참조형)`); return st; }
+        if (!A.llm.ready('structure')) { ctx.log('info', '구조화: 참조형(AI)은 연결된 AI 키가 없어 건너뜀 → 규칙 기반'); continue; }
+        try { ctx.log('stage', `구조화: 참조형(${A.llm.label('structure')}, 줄 ID만 응답) 시도`); const st = enrich(await referenceStructure(lines), lines); st.engine = 'reference_mode'; ctx.log('info', `구조화 완료: ${st.items.length}문항 (참조형)`); return st; }
         catch (e) { ctx.log('fallback', `구조화: ${e.message} → 규칙 기반으로 전환`); }
       }
       if (eng === 'rule_based') { const st = enrich(ruleStructure(lines), lines); st.engine = 'rule_based'; ctx.log('info', `구조화 완료: ${st.items.length}문항 (규칙 기반)`); return st; }
@@ -1436,7 +1685,7 @@ ${listing}`;
       const s = A.Settings.get();
       const chain = s.ocr.chain.filter((e) => !s.ocr.disabled.includes(e));
       const chainEl = h('div', { class: 'chain' }, h('span', { class: 'chip ok' }, 'PDF 글자·HWPX 직접 읽기'), h('span', { class: 'arr' }, '→'),
-        chain.map((e, i) => [i ? h('span', { class: 'arr' }, '→') : null, h('span', { class: 'chip' + (e === 'gemini' && !s.ai.geminiKey ? '' : ' accent'), title: e === 'gemini' && !s.ai.geminiKey ? 'Gemini 키가 없어 건너뜀' : '' }, A.ENGINE_LABEL[e] + (e === 'gemini' && !s.ai.geminiKey ? ' (키 없음)' : ''))]));
+        chain.map((e, i) => { const off = e === 'gemini' && !A.llm.ready('ocr'); return [i ? h('span', { class: 'arr' }, '→') : null, h('span', { class: 'chip' + (off ? '' : ' accent'), title: e === 'gemini' ? (off ? '연결된 AI 키가 없어 건너뜀' : A.llm.label('ocr')) : '' }, e === 'gemini' ? (off ? 'AI 판독 (키 없음)' : 'AI 판독 · ' + A.llm.modelFor(A.llm.providerFor('ocr'))) : A.ENGINE_LABEL[e])]; }));
       const j = S.jobId && A.Jobs.get(S.jobId);
       return h('div', { class: 'card' },
         h('div', { class: 'card-h' }, h('h3', null, '3  실행'), h('a', { href: '#/settings?s=ocr', class: 'small' }, '대체 순서 바꾸기')),
@@ -1841,7 +2090,7 @@ JSON {"notes":[{"quote":"…","category":"…","note":"…","level":1}]} 로만 
 원문:
 ${doc.text}`;
     ctx.stage('AI 주석 생성', 30);
-    const r = await A.gemini([{ text: prompt }]);
+    const r = await A.llm.generate({ task: 'annotate', parts: [{ text: prompt }], json: true, maxTokens: 16000 });
     if (A.classifyOutcome(r.finishReason, (r.text || '').length, 0) !== 'ok' || !Array.isArray(r.json?.notes)) { const e = new Error(`AI 주석 실패 (${r.finishReason})`); throw e; }
     ctx.stage('위치 연결', 80);
     return r.json.notes.map((n) => ({ ...anchor(doc.text, n.quote || ''), id: A.uid('n'), quote: n.quote, category: CAT[n.category] ? n.category : '출제포인트', note: String(n.note || '').slice(0, 160), level: Math.min(5, Math.max(1, +n.level || 3)), source: 'ai', pinned: false, hidden: false }));
@@ -1877,8 +2126,8 @@ ${doc.text}`;
           h('div', { class: 'field' }, h('label', null, '원문'), h('textarea', { class: 'input', rows: 14, 'aria-label': '원문', oninput: (e) => { doc.text = e.target.value; clearTimeout(doc._t); doc._t = setTimeout(() => { doc.genre = detectGenre(doc.text); rerun(); }, 600); } }, doc.text)),
           h('div', { class: 'row' },
             h('button', { class: 'btn', onclick: rerun }, '사전 주석 다시'),
-            h('button', { class: 'btn primary', disabled: !!aiJob || !doc.text.trim(), title: s.ai.geminiKey ? '' : '설정 > OCR·AI에 Gemini 키를 넣으면 켜져요', onclick: runAI }, aiJob ? 'AI 주석 중…' : 'AI 주석 추가 (2단계)')),
-          !A.Settings.get().ai.geminiKey ? h('div', { class: 'small muted' }, 'AI 주석은 설정에 Gemini 키가 있을 때 동작해요. 지금 보이는 주석은 규칙 기반 1단계(무료)입니다.') : null,
+            h('button', { class: 'btn primary', disabled: !!aiJob || !doc.text.trim(), title: A.llm.ready('annotate') ? A.llm.label('annotate') : '설정 > AI 모델에서 키를 넣으면 켜져요', onclick: runAI }, aiJob ? 'AI 주석 중…' : 'AI 주석 추가 (2단계)')),
+          !A.llm.ready('annotate') ? h('div', { class: 'small muted' }, 'AI 주석은 설정 > AI 모델에서 Gemini·OpenAI·Claude 중 하나를 연결하면 동작해요. 지금 보이는 주석은 규칙 기반 1단계(무료)입니다.') : h('div', { class: 'small muted' }, 'AI 주석: ' + A.llm.label('annotate')),
           lost.length ? h('div', { class: 'small', style: { color: 'var(--warn)' } }, `위치를 못 찾은 주석 ${lost.length}개: ${lost.map((n) => '"' + n.quote + '"').join(', ')} (버리지 않고 보관)`) : null));
 
       const out = h('div', { class: 'anno-out ' + (doc.layout === 'note' ? 'note' : '') });
@@ -2573,7 +2822,7 @@ ${doc.text}`;
   const { h, esc } = A;
   const SECTIONS = [
     ['account', '계정'], ['brand', '학원 브랜드'], ['output', '출력 기본값'], ['annotation', '주석 기본값'],
-    ['ocr', 'OCR·AI'], ['agent', 'API·에이전트'], ['notify', '알림'], ['history', '변경 기록'], ['danger', '데이터 관리'],
+    ['ai', 'AI 모델'], ['ocr', '글자 읽기(OCR)'], ['agent', 'API·에이전트'], ['notify', '알림'], ['history', '변경 기록'], ['danger', '데이터 관리'],
   ];
   const get = (o, path) => path.split('.').reduce((a, k) => a?.[k], o);
   const set = (o, path, v) => { const ks = path.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
@@ -2619,7 +2868,7 @@ ${doc.text}`;
       order.forEach((e, i) => {
         const off = draft.ocr.disabled.includes(e);
         list.append(h('div', { class: 'chain-item', style: off ? { opacity: .5 } : null },
-          h('span', { class: 'i' }, i + 1), h('span', { style: { flex: 1 } }, A.ENGINE_LABEL[e], e === 'gemini' && !draft.ai.geminiKey ? h('span', { class: 'muted tiny' }, '  키 없으면 건너뜀') : null),
+          h('span', { class: 'i' }, i + 1), h('span', { style: { flex: 1 } }, A.ENGINE_LABEL[e], e === 'gemini' ? h('span', { class: 'muted tiny' }, '  ' + (A.llm.ready('ocr') ? A.llm.label('ocr') : '연결된 AI 없으면 건너뜀')) : null),
           h('button', { class: 'btn sm ghost', disabled: i === 0, 'aria-label': '위로', onclick: () => { const a = order.slice(); [a[i - 1], a[i]] = [a[i], a[i - 1]]; update('ocr.chain', a); draw(); } }, '↑'),
           h('button', { class: 'btn sm ghost', disabled: i === order.length - 1, 'aria-label': '아래로', onclick: () => { const a = order.slice(); [a[i + 1], a[i]] = [a[i], a[i + 1]]; update('ocr.chain', a); draw(); } }, '↓'),
           e === 'manual' ? h('span', { class: 'tiny muted' }, '항상 마지막') : h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: !off, onchange: (ev) => { const d = new Set(draft.ocr.disabled); ev.target.checked ? d.delete(e) : d.add(e); update('ocr.disabled', [...d]); draw(); } }), h('span'))));
@@ -2648,15 +2897,15 @@ ${doc.text}`;
           row('annotation.density', '필기량', '1 핵심만 ~ 5 촘촘 · 바꿔도 다시 생성하지 않아요', select('annotation.density', [[1, '1 핵심만'], [2, '2 간결'], [3, '3 보통'], [4, '4 풍부'], [5, '5 촘촘']])),
           row('annotation.layout', '레이아웃', '', seg('annotation.layout', [['wing', '날개형'], ['note', '노트형'], ['blank', '빈칸형']])),
           row('annotation.autoHighlight', '형광펜 자동 표시', '주석이 붙은 구절에 색 밑줄', toggle('annotation.autoHighlight'))),
-        sec('ocr', 'OCR·AI', '쪽마다 위에서부터 시도하고, 저작권 차단·잘림·품질 낮음이면 다음 엔진으로 넘어갑니다.',
+        aiSection(sec),
+        sec('ocr', '글자 읽기(OCR)', '쪽마다 위에서부터 시도하고, 저작권 차단·잘림·품질 낮음이면 다음 엔진으로 넘어갑니다.',
           row('ocr.chain', '글자 읽기 대체 순서', 'PDF 글자 레이어·HWPX는 항상 먼저 직접 읽음(비용 0)', chainEditor()),
           row('ocr.lowConf', '의심 줄 기준', '신뢰도가 이보다 낮으면 교정 화면에서 노란색', select('ocr.lowConf', [[60, '60'], [70, '70'], [80, '80'], [90, '90']])),
-          row('ocr.enhance', '사진 자동 보정', '회색조·명암 늘리기', toggle('ocr.enhance')),
-          row('ai.geminiKey', 'Gemini API 키', '넣으면 Gemini 판독·참조형 구조화·AI 주석이 켜집니다. 이 브라우저에만 저장되니 공용 컴퓨터에서는 넣지 마세요.', text('ai.geminiKey', 'AIza…', 'password')),
-          row('ai.model', '모델', '', text('ai.model'))),
+          row('ocr.enhance', '사진 자동 보정', '회색조·명암 늘리기', toggle('ocr.enhance'))),
         sec('agent', 'API·에이전트', '화면에서 하는 모든 일은 같은 계약의 API로도 할 수 있습니다.',
           row('agent.api', '브라우저 API', '에이전트가 이 페이지에서 바로 호출', h('code', { class: 'small' }, 'window.App.api')),
-          row('agent.keys', 'API 키 · 월 사용 한도', '키별 권한과 월 한도, 즉시 폐기', h('span', { class: 'chip' }, '준비 중')),
+          row('agent.keys', 'AI 키 · 월 사용 한도', 'Gemini·OpenAI·Claude 키, 월 한도, 즉시 폐기는 AI 모델 구역에 있어요', h('a', { href: '#/settings?s=ai', class: 'btn sm', onclick: (e) => { e.preventDefault(); jump('ai'); } }, 'AI 모델로')),
+          row('agent.llm', 'AI 호출 API', '에이전트도 같은 연결로 부름: App.api.llm.generate({ provider, parts, json })', h('code', { class: 'small' }, 'POST /api/llm')),
           row('agent.mcp', 'MCP 도구', 'quote, ocr_document, analyze_exam, annotate_passage, build_exam, render_document', h('span', { class: 'chip' }, '준비 중'))),
         sec('notify', '알림', '',
           row('notify.jobDone', '작업 완료 알림', '작업 큐의 작업이 끝나면 화면 아래에 표시', toggle('notify.jobDone'))),
@@ -2677,6 +2926,71 @@ ${doc.text}`;
         h('div', { class: 'settings' }, nav, content));
       refreshBar();
     }
+    // ---------- AI 모델 구역 ----------
+    const L = window.KSLLM;
+    const testResult = {};
+    function aiSection(sec) {
+      const st = A.llm.status;
+      const via = { vercel: 'Vercel 서버 중계', 'dev-server': '개발 서버 중계', direct: '브라우저에서 직접 호출', unknown: '확인 중' }[st.via] || st.via;
+      const cards = L.PROVIDERS.map((p) => providerCard(p));
+      const taskRows = Object.entries(A.llm.TASKS).map(([t, label]) => {
+        const p = draft.ai.tasks[t];
+        const ok = A.llm.serverKey(p) || !!draft.ai.keys[p];
+        return row('ai.tasks.' + t, label, ok ? `${L.PROVIDER_LABEL[p]} · ${draft.ai.models[p]}` : `${L.PROVIDER_LABEL[p]} 키가 없어요. 키를 넣거나 다른 AI를 고르세요.`,
+          h('select', { class: 'input', onchange: (e) => { update('ai.tasks.' + t, e.target.value); draw(); } }, L.PROVIDERS.map((q) => h('option', { value: q, selected: q === p }, L.PROVIDER_LABEL[q]))));
+      });
+      return sec('ai', 'AI 모델', '시험지 판독·구조화·주석에 쓸 AI를 고릅니다. 키는 서버 환경 변수에 두는 것이 가장 안전해요.',
+        row('ai.via', '연결 방식', st.via === 'direct' ? '서버 중계가 없어 이 브라우저가 각 회사에 바로 묻습니다(단일 파일로 열었을 때). 개발 서버나 배포 사이트에서는 서버 중계로 바뀝니다.' : '키는 서버가 대신 들고 AI를 부릅니다. 브라우저 코드에 키가 드러나지 않아요.',
+          h('div', { class: 'row' }, h('span', { class: 'chip ' + (st.via === 'direct' ? 'warn' : 'ok') }, via), h('button', { class: 'btn sm', onclick: async () => { await A.llm.refresh(); draw(); } }, '다시 확인'))),
+        ...cards,
+        ...taskRows,
+        row('ai.howto', '서버 키 등록 방법', 'Vercel 프로젝트 > Settings > Environment Variables에 GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY를 넣고 다시 배포. 개발 서버는 kor-studio 폴더의 .env.local 파일에 같은 이름으로 적으면 됩니다.', h('span')));
+    }
+    function providerCard(p) {
+      const state = A.llm.serverKey(p) ? 'server' : draft.ai.keys[p] ? 'browser' : 'none';
+      const stateChip = { server: ['서버 키 연결됨', 'ok'], browser: ['이 브라우저 키', 'accent'], none: ['키 없음', ''] }[state];
+      const models = L.MODELS[p];
+      const cur = draft.ai.models[p];
+      const custom = !models.some((m) => m.id === cur);
+      const u = A.llm.usage(p);
+      const lim = +draft.ai.limits[p] || 0;
+      const tr = testResult[p];
+      const keyIn = h('input', { class: 'input', type: 'password', autocomplete: 'off', placeholder: state === 'server' ? '서버 키 사용 중 (비워 두세요)' : { gemini: 'AIza…', openai: 'sk-…', anthropic: 'sk-ant-…' }[p], value: draft.ai.keys[p] || '', 'aria-label': `${L.PROVIDER_LABEL[p]} API 키`, style: { flex: 1, minWidth: '160px' }, oninput: (e) => update('ai.keys.' + p, e.target.value.trim()) });
+      const box = h('div', { class: 's-row', 'data-path': 'ai.keys.' + p, style: { gridTemplateColumns: '1fr', alignItems: 'start' } },
+        h('div', { class: 'row' }, h('b', { style: { fontSize: '14px' } }, L.PROVIDER_LABEL[p]), h('span', { class: 'chip ' + stateChip[1] }, stateChip[0]), h('span', { class: 'spacer' }),
+          h('span', { class: 'small muted num' }, `이번 달 ${u.req}회 · ${u.total.toLocaleString()} 토큰${u.fail ? ` · 실패 ${u.fail}` : ''}${lim ? ` / 한도 ${lim.toLocaleString()}` : ''}`)),
+        lim ? h('div', { class: 'bar-track', style: { margin: '6px 0' } }, h('div', { class: 'bar-fill', style: { width: Math.min(100, (u.total / lim) * 100) + '%', background: u.total >= lim ? 'var(--bad)' : '' } })) : null,
+        h('div', { class: 'grid2', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginTop: '8px' } },
+          h('div', { class: 'field' }, h('label', null, '모델'),
+            h('select', { class: 'input', 'aria-label': `${L.PROVIDER_LABEL[p]} 모델`, onchange: (e) => { update('ai.models.' + p, e.target.value === '__custom' ? '' : e.target.value); draw(); } },
+              models.map((m) => h('option', { value: m.id, selected: m.id === cur }, `${m.label} · ${m.note}`)), h('option', { value: '__custom', selected: custom }, '직접 입력…')),
+            custom ? h('input', { class: 'input', placeholder: '모델 ID', value: cur || '', style: { marginTop: '6px' }, oninput: (e) => update('ai.models.' + p, e.target.value.trim()) }) : null),
+          h('div', { class: 'field' }, h('label', null, '월 사용 한도 (토큰, 0 = 제한 없음)'),
+            h('input', { class: 'input', type: 'number', min: 0, step: 100000, value: lim, 'aria-label': `${L.PROVIDER_LABEL[p]} 월 사용 한도`, oninput: (e) => update('ai.limits.' + p, Math.max(0, +e.target.value || 0)) }))),
+        h('div', { class: 'field', style: { marginTop: '8px' } }, h('label', null, 'API 키 (이 브라우저에만 저장 · 공용 컴퓨터에서는 넣지 마세요)'),
+          h('div', { class: 'row', style: { flexWrap: 'nowrap' } }, keyIn,
+            h('button', { class: 'btn sm', 'aria-label': `${L.PROVIDER_LABEL[p]} 연결 시험`, onclick: () => runTest(p) }, tr && tr.running ? '시험 중…' : '연결 시험'),
+            h('button', { class: 'btn sm danger', 'aria-label': `${L.PROVIDER_LABEL[p]} 키 폐기`, disabled: !saved.ai.keys[p] && !draft.ai.keys[p], onclick: () => revoke(p) }, '키 폐기'))),
+        tr && !tr.running ? h('div', { class: 'small', style: { marginTop: '6px', color: tr.ok ? 'var(--ok)' : 'var(--bad)' } }, tr.ok ? `연결됨 · ${tr.model} · ${tr.ms}ms · ${tr.keySource === 'server' ? '서버 키' : '넣은 키'}` : `실패: ${tr.error}`) : null);
+      return box;
+    }
+    async function runTest(p) {
+      testResult[p] = { running: true }; draw();
+      try {
+        const r = await A.llm.test(p, { model: draft.ai.models[p], key: draft.ai.keys[p] });
+        testResult[p] = { ...r, ok: true };
+      } catch (e) { testResult[p] = { ok: false, error: e.message }; }
+      draw();
+    }
+    function revoke(p) {
+      if (!confirm(`${L.PROVIDER_LABEL[p]} 키를 이 브라우저에서 바로 지울까요?`)) return;
+      const s = A.Settings.get(); s.ai.keys[p] = ''; A.Settings.save(s);
+      saved = A.Settings.get(); draft.ai.keys[p] = '';
+      delete testResult[p];
+      A.toast(`${L.PROVIDER_LABEL[p]} 키를 지웠어요. 키 자체를 막으려면 해당 회사 콘솔에서도 폐기하세요.`);
+      draw();
+    }
+
     function restoreButton() {
       const inp = h('input', { type: 'file', accept: '.json,application/json', class: 'hidden', onchange: async (e) => {
         const f = e.target.files[0]; e.target.value = '';
@@ -2701,6 +3015,7 @@ ${doc.text}`;
       root.querySelectorAll('.s-nav a').forEach((a) => a.classList.toggle('on', a.dataset.s === id));
     }
     draw();
+    A.llm.refresh().then(() => draw());
     const onScroll = () => {
       let on = SECTIONS[0][0];
       for (const [id] of SECTIONS) { const el = root.querySelector('#s-' + id); if (el && el.getBoundingClientRect().top < 160) on = id; }
@@ -2738,7 +3053,8 @@ ${doc.text}`;
     getJob: (id) => A.Jobs.get(id),
     listDocuments: () => A.DB.all('documents').then((ds) => ds.map((d) => ({ id: d.id, title: d.title, mode: d.mode, pages: d.pages.length, items: d.structure?.items?.length || 0 }))),
     getDocument: (id) => A.DB.get('documents', id),
-    settings: () => { const s = A.Settings.get(); return { ...s, ai: { ...s.ai, geminiKey: s.ai.geminiKey ? '••••' : '' } }; },
+    settings: () => { const s = A.Settings.get(); return { ...s, ai: { ...s.ai, keys: Object.fromEntries(Object.entries(s.ai.keys).map(([k, v]) => [k, v ? '••••' : ''])) } }; },
+    llm: { status: () => A.llm.status, generate: (opts) => A.llm.generate(opts), usage: (p) => A.llm.usage(p), models: () => window.KSLLM.MODELS },
   };
 
   // 배포 사이트(비밀번호 보호)에서만 잠그기 버튼 표시. 로컬 개발 서버에는 비밀번호가 없음
@@ -2747,6 +3063,7 @@ ${doc.text}`;
     foot.insertBefore(A.h('a', { href: '/__logout', class: 'btn ghost sm', title: '잠그기: 다시 들어오려면 비밀번호 필요', 'aria-label': '잠그기' }, '잠그기'), foot.lastElementChild);
   }
 
+  A.llm.refresh();
   if (!location.hash) location.hash = '#/exam';
   A.renderRoute();
 })(window.App);

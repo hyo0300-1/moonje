@@ -29,3 +29,12 @@
 4. 끄려면 검은 창에서 `Ctrl + C`
 
 터미널을 쓰면: `cd kor-studio` 후 `npm run dev` (또는 `node dev-server.js`). 포트를 바꾸려면 `set PORT=5200` 후 실행.
+
+## AI 연결 (Gemini · OpenAI · Claude)
+- 설정 > **AI 모델**에서 회사별 모델·키·월 사용 한도·연결 시험·키 폐기, 작업별(시험지 판독·구조화·주석) AI 선택
+- 모델 목록(2026-11-12 기준): Gemini 3.8 Flash / 4 Argon / 4 Carbon / 3.5 Flash-Lite, GPT-6.1 Terra / 6.1 Sol / 6 Astra / 6 Luna, Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2 / Haiku 5.5. 목록에 없으면 "직접 입력"
+- 호출 경로: 화면 → `/api/llm`(서버 중계) → 각 회사 API. 키는 서버에 두는 것을 권장
+  - Vercel: Settings > Environment Variables 에 `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` 등록 후 다시 배포
+  - 개발 서버: 이 폴더에 `.env.local` 파일을 만들고 같은 이름으로 한 줄씩 적기 (`.env.local`은 GitHub에 올라가지 않음)
+  - 서버 키가 없으면 설정 화면에서 넣은 키를 그 요청에만 서버로 넘겨 씀(서버에 저장하지 않음)
+- 공통 호출 코드: `shared/llm-core.js` (브라우저·Vercel 함수 `api/llm.mjs`·`dev-server.js`가 같이 씀)
