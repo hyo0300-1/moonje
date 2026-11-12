@@ -141,7 +141,9 @@ ${doc.text}`;
           h('div', { class: 'field' }, h('label', null, '원문'), h('textarea', { class: 'input', rows: 14, 'aria-label': '원문', oninput: (e) => { doc.text = e.target.value; clearTimeout(doc._t); doc._t = setTimeout(() => { doc.genre = detectGenre(doc.text); rerun(); }, 600); } }, doc.text)),
           h('div', { class: 'row' },
             h('button', { class: 'btn', onclick: rerun }, '사전 주석 다시'),
-            h('button', { class: 'btn primary', disabled: !!aiJob || !doc.text.trim(), title: A.llm.ready('annotate') ? A.llm.label('annotate') : '설정 > AI 모델에서 키를 넣으면 켜져요', onclick: runAI }, aiJob ? 'AI 주석 중…' : 'AI 주석 추가 (2단계)')),
+            A.llm.ready('annotate')
+              ? h('button', { class: 'btn primary', disabled: !!aiJob || !doc.text.trim(), title: A.llm.label('annotate'), onclick: runAI }, aiJob ? 'AI 주석 중…' : 'AI 주석 추가 (2단계)')
+              : h('button', { class: 'btn', title: 'Gemini·OpenAI·Claude 중 하나의 키를 연결하면 AI 주석이 켜져요', onclick: () => A.go('settings', { s: 'ai' }) }, 'AI 연결하기')),
           !A.llm.ready('annotate') ? h('div', { class: 'small muted' }, 'AI 주석은 설정 > AI 모델에서 Gemini·OpenAI·Claude 중 하나를 연결하면 동작해요. 지금 보이는 주석은 규칙 기반 1단계(무료)입니다.') : h('div', { class: 'small muted' }, 'AI 주석: ' + A.llm.label('annotate')),
           lost.length ? h('div', { class: 'small', style: { color: 'var(--warn)' } }, `위치를 못 찾은 주석 ${lost.length}개: ${lost.map((n) => '"' + n.quote + '"').join(', ')} (버리지 않고 보관)`) : null));
 
@@ -194,6 +196,7 @@ ${doc.text}`;
     }
     function rerun() { const keep = doc.notes.filter((n) => n.source !== 'rule'); doc.notes = [...ruleNotes(doc.text, doc.genre), ...keep]; draw(); }
     function runAI() {
+      if (!A.llm.ready('annotate')) { A.toast('AI 키가 연결되지 않았어요. 설정 > AI 모델에서 연결해 주세요.', 'bad'); return A.go('settings', { s: 'ai' }); }
       aiJob = A.Jobs.create('annotate', `AI 주석: ${doc.title || '지문'}`, { passage_chars: doc.text.length }, async (ctx) => {
         const add = await aiNotes(doc, ctx);
         const fresh = add.filter((a) => !doc.notes.some((b) => b.start === a.start && b.category === a.category));
@@ -204,6 +207,7 @@ ${doc.text}`;
       draw();
     }
     draw();
+    if (A.llm.status.via === 'unknown') A.llm.refresh().then(() => { if (root.isConnected) draw(); });
     return { cleanup: unsub };
   });
 
