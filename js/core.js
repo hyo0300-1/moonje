@@ -106,7 +106,8 @@ window.App = window.App || {};
     account: { name: '', email: '' },
     brand: { academyName: '비해당학원', headerText: '', footerText: '수업용 자체 제작 자료', accent: '#904ae8' },
     output: { quickAnswers: false, promptTitles: true, answerPlacement: 'end', paper: 'B4' },
-    annotation: { density: 3, layout: 'wing', autoHighlight: true },
+    annotation: { density: 12, layout: 'wing', autoHighlight: true },
+    fonts: { ui: 'pretendard', paper: 'noto-serif', note: 'pretendard', paperSize: 16, noteSize: 12 },
     ocr: { chain: ['gemini', 'dedicated_ocr', 'tile_mode', 'manual'], disabled: [], structure: ['reference_mode', 'rule_based'], lowConf: 70, enhance: true, lang: 'kor+eng' },
     ai: {
       keys: { gemini: '', openai: '', anthropic: '' },
@@ -121,8 +122,11 @@ window.App = window.App || {};
     key: 'ks.settings',
     histKey: 'ks.settings.history',
     get() {
-      let s;
-      try { s = deepMerge(DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(this.key) || '{}')); } catch { s = clone(DEFAULT_SETTINGS); }
+      let s, raw = {};
+      try { raw = JSON.parse(localStorage.getItem(this.key) || '{}'); s = deepMerge(DEFAULT_SETTINGS, raw); } catch { s = clone(DEFAULT_SETTINGS); }
+      // 필기량 5단계 → 20단계 (예전 3 = 지금 12)
+      if (raw.annotation && raw.annotation.density && !raw.annotation.scale20) s.annotation.density = Math.min(20, raw.annotation.density * 4);
+      s.annotation.scale20 = true;
       // 예전 설정 옮기기: 단일 Gemini 키 → 회사별 키, 종료 예정 모델 교체
       if (s.ai.geminiKey && !s.ai.keys.gemini) s.ai.keys.gemini = s.ai.geminiKey;
       delete s.ai.geminiKey; delete s.ai.model;
@@ -341,6 +345,7 @@ window.App = window.App || {};
     const s = Settings.get();
     document.documentElement.dataset.theme = s.ui.theme;
     document.documentElement.style.setProperty('--accent', s.brand.accent || '#904ae8');
+    if (A.fonts) A.fonts.apply(s.fonts);
     const b = $('#theme-btn');
     if (b) b.innerHTML = icon(s.ui.theme === 'dark' ? 'sun' : 'moon');
   }

@@ -33,6 +33,7 @@
   }
 
   A.llm.refresh();
+  A.fonts.init();
   if (!location.hash) location.hash = '#/exam';
   A.renderRoute();
 })(window.App);

@@ -6,7 +6,29 @@
     '어휘': '#2563eb', '현대어풀이': '#0891b2', '표현법': '#9333ea', '화자·정서': '#db2777', '인물·사건': '#ea580c',
     '구조': '#16a34a', '배경': '#64748b', '문법': '#0d9488', '출제포인트': '#dc2626', '기출연계': '#b45309',
   };
-  const DENS = ['', '핵심만', '간결', '보통', '풍부', '촘촘'];
+  // 필기량 20단계: 주석마다 중요도 rank(1~20, 낮을수록 중요)를 두고 rank ≤ 필기량인 것만 표시
+  const DMAX = 20;
+  const densLabel = (d) => ['핵심만', '간결', '보통', '풍부', '촘촘'][Math.min(4, Math.ceil(d / 4) - 1)];
+  const CAT_W = { '출제포인트': 0, '기출연계': 0, '구조': 1, '어휘': 1, '현대어풀이': 1, '화자·정서': 2, '인물·사건': 2, '표현법': 2, '문법': 3, '배경': 3 };
+  const rankOf = (n) => n.rank || Math.max(1, Math.min(DMAX, (n.level || 3) * 4 - 2));
+  // 같은 level 안에서 갈래 중요도·위치 순으로 4칸에 나눠 rank 부여 (이미 rank가 있으면 유지)
+  function assignRanks(notes) {
+    const byLevel = {};
+    for (const n of notes) if (!n.rank) (byLevel[n.level] = byLevel[n.level] || []).push(n);
+    for (const [lv, arr] of Object.entries(byLevel)) {
+      arr.sort((a, b) => (CAT_W[a.category] ?? 2) - (CAT_W[b.category] ?? 2) || a.start - b.start);
+      arr.forEach((n, i) => { n.rank = Math.min(DMAX, (lv - 1) * 4 + 1 + Math.floor((i * 4) / arr.length)); });
+    }
+    return notes;
+  }
+  // 예전(5단계) 자료를 20단계로 옮김
+  function normalizeDoc(doc) {
+    if (!doc || doc.scale20) return doc;
+    if (doc.density && doc.density <= 5) doc.density = Math.min(DMAX, doc.density * 4);
+    assignRanks(doc.notes || []);
+    doc.scale20 = true;
+    return doc;
+  }
   const SAMPLE = { title: '진달래꽃', author: '김소월', text: '나 보기가 역겨워\n가실 때에는\n말없이 고이 보내 드리우리다.\n\n영변에 약산\n진달래꽃\n아름 따다 가실 길에 뿌리우리다.\n\n가시는 걸음걸음\n놓인 그 꽃을\n사뿐히 즈려밟고 가시옵소서.\n\n나 보기가 역겨워\n가실 때에는\n죽어도 아니 눈물 흘리우리다.' };
   const STOP = new Set(['그리고', '하지만', '그러나', '있는', '없는', '하는', '것은', '것이', '때에', '에서', '으로', '에게', '이다', '한다', '그는', '그의']);
 
@@ -82,7 +104,7 @@
         add(at, at + w.length, '표현법', `반복: '${w}'이(가) ${n}번 나와 운율과 의미를 강조`, n >= 3 ? 2 : 3);
       }
     }
-    return notes.sort((a, b) => a.start - b.start || a.level - b.level);
+    return assignRanks(notes).sort((a, b) => a.start - b.start || a.rank - b.rank);
   }
 
   // ---------- 위치 복구 (정확히 → 공백·부호 무시 → 실패) ----------
@@ -99,8 +121,8 @@
   async function aiNotes(doc, ctx) {
     const prompt = `너는 고등학교 국어 교사다. 아래 ${doc.genre} 작품(또는 지문)에 수업용 주석을 달아라.
 규칙: quote는 원문에 있는 그대로의 짧은 구절(2~15자). 원문 전체를 다시 쓰지 말 것.
-category는 ${Object.keys(CAT).join(', ')} 중 하나. level은 중요도 1(가장 중요)~5. note는 60자 이내.
-JSON {"notes":[{"quote":"…","category":"…","note":"…","level":1}]} 로만 답하라. 25개 이내.
+category는 ${Object.keys(CAT).join(', ')} 중 하나. rank는 중요도 1(시험에 꼭 나오는 핵심)~20(있으면 좋은 보충)이며 주석마다 고르게 퍼뜨릴 것. note는 60자 이내.
+JSON {"notes":[{"quote":"…","category":"…","note":"…","rank":1}]} 로만 답하라. 30개 이내.
 제목: ${doc.title} ${doc.author ? '/ ' + doc.author : ''}
 원문:
 ${doc.text}`;
@@ -108,13 +130,14 @@ ${doc.text}`;
     const r = await A.llm.generate({ task: 'annotate', parts: [{ text: prompt }], json: true, maxTokens: 16000 });
     if (A.classifyOutcome(r.finishReason, (r.text || '').length, 0) !== 'ok' || !Array.isArray(r.json?.notes)) { const e = new Error(`AI 주석 실패 (${r.finishReason})`); throw e; }
     ctx.stage('위치 연결', 80);
-    return r.json.notes.map((n) => ({ ...anchor(doc.text, n.quote || ''), id: A.uid('n'), quote: n.quote, category: CAT[n.category] ? n.category : '출제포인트', note: String(n.note || '').slice(0, 160), level: Math.min(5, Math.max(1, +n.level || 3)), source: 'ai', pinned: false, hidden: false }));
+    return r.json.notes.map((n) => ({ ...anchor(doc.text, n.quote || ''), id: A.uid('n'), quote: n.quote, category: CAT[n.category] ? n.category : '출제포인트', note: String(n.note || '').slice(0, 160), ...(() => { const rk = Math.min(DMAX, Math.max(1, Math.round(+n.rank || (+n.level ? n.level * 4 - 2 : 10)))); return { rank: rk, level: Math.ceil(rk / 4) }; })(), source: 'ai', pinned: false, hidden: false }));
   }
 
   A.route('annotate', async (view, params) => {
     const s = A.Settings.get();
     let doc = params.id ? await A.DB.get('annotations', params.id) : null;
-    if (!doc) doc = A.annoDraft || { id: A.uid('an_'), ...SAMPLE, genre: detectGenre(SAMPLE.text), notes: [], density: s.annotation.density, layout: s.annotation.layout, created_at: Date.now() };
+    if (!doc) doc = A.annoDraft || { id: A.uid('an_'), ...SAMPLE, genre: detectGenre(SAMPLE.text), notes: [], density: s.annotation.density, layout: s.annotation.layout, created_at: Date.now(), scale20: true };
+    normalizeDoc(doc);
     A.annoDraft = doc;
     if (!doc.notes.length && doc.text) doc.notes = ruleNotes(doc.text, doc.genre);
     const root = h('div');
@@ -123,7 +146,18 @@ ${doc.text}`;
     let aiJob = null;
     const unsub = A.Jobs.on(() => { if (aiJob && !['queued', 'running'].includes(aiJob.status)) { aiJob = null; draw(); } });
 
-    function visible() { return doc.notes.filter((n) => n.start >= 0 && !n.hidden && !hideCats.has(n.category) && (n.pinned || n.level <= doc.density)); }
+    function visible() { return doc.notes.filter((n) => n.start >= 0 && !n.hidden && !hideCats.has(n.category) && (n.pinned || rankOf(n) <= doc.density)); }
+    function setFont(key, v) { const ss = A.Settings.get(); ss.fonts[key] = v; A.Settings.save(ss); }
+    function fontBar() {
+      const f = A.Settings.get().fonts;
+      const step = (key, d, min, max) => h('button', { class: 'btn sm icon-btn', 'aria-label': `${key === 'paperSize' ? '지문' : '주석'} 글자 ${d > 0 ? '크게' : '작게'}`, onclick: () => { const ss = A.Settings.get(); ss.fonts[key] = Math.max(min, Math.min(max, (ss.fonts[key] || 0) + d)); A.Settings.save(ss); draw(); } }, d > 0 ? '+' : '−');
+      return h('div', { class: 'row small', style: { marginTop: '10px', gap: '6px' } },
+        h('span', { class: 'lbl' }, '지문'), A.fonts.select(f.paper, (v) => setFont('paper', v), { label: '지문 글꼴', style: { height: '28px', width: '150px', fontSize: '12px' } }),
+        step('paperSize', -1, 11, 28), h('span', { class: 'num' }, f.paperSize + 'px'), step('paperSize', 1, 11, 28),
+        h('span', { class: 'lbl', style: { marginLeft: '8px' } }, '주석'), A.fonts.select(f.note, (v) => setFont('note', v), { label: '주석 글꼴', style: { height: '28px', width: '150px', fontSize: '12px' } }),
+        step('noteSize', -1, 9, 20), h('span', { class: 'num' }, f.noteSize + 'px'), step('noteSize', 1, 9, 20),
+        h('a', { href: '#/settings?s=fonts', class: 'small', style: { marginLeft: '4px' } }, '글꼴 더보기'));
+    }
     function draw() {
       root.innerHTML = '';
       const vis = visible();
@@ -171,15 +205,16 @@ ${doc.text}`;
       }
       const right = h('div', { class: 'card' },
         h('div', { class: 'card-h' },
-          h('div', { class: 'dens' }, h('span', { class: 'lbl' }, '필기량'), h('input', { type: 'range', min: 1, max: 5, step: 1, value: doc.density, 'aria-label': '필기량', oninput: (e) => { doc.density = +e.target.value; draw(); } }), h('b', { class: 'small' }, `${doc.density} ${DENS[doc.density]}`), h('span', { class: 'tiny muted' }, '바꿔도 다시 생성 안 함 · 연필 0')),
+          h('div', { class: 'dens' }, h('span', { class: 'lbl' }, '필기량'), h('input', { type: 'range', min: 1, max: DMAX, step: 1, value: doc.density, 'aria-label': '필기량 (1~20)', oninput: (e) => { doc.density = +e.target.value; draw(); } }), h('b', { class: 'small num', style: { minWidth: '64px' } }, `${doc.density}/${DMAX} · ${densLabel(doc.density)}`), h('span', { class: 'tiny muted' }, '바꿔도 다시 생성 안 함')),
           h('div', { class: 'seg' }, [['wing', '날개형'], ['note', '노트형'], ['blank', '빈칸형']].map(([k, l]) => h('button', { class: doc.layout === k ? 'on' : '', onclick: () => { doc.layout = k; draw(); } }, l)))),
         h('div', { class: 'card-b', style: { paddingBottom: '0' } },
           h('div', { class: 'legend' }, Object.keys(CAT).filter((c) => counts[c]).map((c) => h('button', { class: 'chip btnchip', style: hideCats.has(c) ? { opacity: .4 } : { borderColor: CAT[c], color: CAT[c] }, onclick: () => { hideCats.has(c) ? hideCats.delete(c) : hideCats.add(c); draw(); } }, `${c} ${counts[c]}`))),
-          h('div', { class: 'small muted', style: { marginTop: '8px' } }, `표시 ${vis.length} / 전체 ${doc.notes.length} · 예상 분량 B4 2단 약 ${est}쪽`)),
+          h('div', { class: 'small muted', style: { marginTop: '8px' } }, `표시 ${vis.length} / 전체 ${doc.notes.length} · 예상 분량 B4 2단 약 ${est}쪽`),
+          fontBar()),
         out,
         h('div', { class: 'card-b row', style: { borderTop: '1px solid var(--line)' } },
           h('span', { class: 'small muted' }, '주석은 원문 위치에 묶여 있어 레이아웃·필기량을 바꿔도 그대로예요.'), h('span', { class: 'spacer' }),
-          h('button', { class: 'btn sm', onclick: () => { doc = { id: A.uid('an_'), title: '', author: '', text: '', genre: '비문학', notes: [], density: doc.density, layout: doc.layout, created_at: Date.now() }; A.annoDraft = doc; draw(); } }, '새 지문'),
+          h('button', { class: 'btn sm', onclick: () => { doc = { id: A.uid('an_'), title: '', author: '', text: '', genre: '비문학', notes: [], density: doc.density, layout: doc.layout, created_at: Date.now(), scale20: true }; A.annoDraft = doc; draw(); } }, '새 지문'),
           h('button', { class: 'btn sm primary', onclick: async () => { doc.saved_at = Date.now(); const { _t, ...clean } = doc; await A.DB.put('annotations', clean); A.toast('자료함에 저장했어요'); } }, '자료함에 저장')));
       root.append(h('div', { class: 'page-head' }, h('div', null, h('h1', null, '주석 달기'), h('p', null, '지문을 넣으면 바로 주석이 달립니다. 필기량과 레이아웃(날개형·노트형·빈칸형)을 바꿔도 다시 만들지 않아요.'))),
         h('div', { class: 'anno' }, left, right));
@@ -191,8 +226,10 @@ ${doc.text}`;
         txt,
         h('span', { class: 'acts' },
           h('button', { title: '고정: 필기량을 내려도 남김', 'aria-label': `${n.pinned ? '고정 해제' : '고정'}: ${n.quote}`, onclick: () => { n.pinned = !n.pinned; draw(); } }, n.pinned ? '고정 해제' : '고정'),
+          h('button', { title: '더 중요하게 (필기량을 낮춰도 보임)', 'aria-label': `더 중요하게: ${n.quote}`, onclick: () => { n.rank = Math.max(1, rankOf(n) - 1); n.level = Math.ceil(n.rank / 4); draw(); } }, '▲'),
+          h('button', { title: '덜 중요하게', 'aria-label': `덜 중요하게: ${n.quote}`, onclick: () => { n.rank = Math.min(DMAX, rankOf(n) + 1); n.level = Math.ceil(n.rank / 4); draw(); } }, '▼'),
           h('button', { title: '숨기기', 'aria-label': `숨기기: ${n.quote}`, onclick: () => { n.hidden = true; draw(); } }, '숨김')),
-        h('span', { class: 'tiny muted', title: '중요도 (1이 가장 중요)' }, 'L' + n.level));
+        h('span', { class: 'tiny muted num', title: '중요도 1~20 (낮을수록 중요, 필기량이 이 값 이상이면 보임)' }, rankOf(n)));
     }
     function rerun() { const keep = doc.notes.filter((n) => n.source !== 'rule'); doc.notes = [...ruleNotes(doc.text, doc.genre), ...keep]; draw(); }
     function runAI() {
@@ -221,6 +258,7 @@ ${doc.text}`;
   const ROLE_W = { 학교프린트: 1.0, 교사용교과서: 0.9, 기출: 0.9, 자습서: 0.8, 평가문제집: 0.8, 수업필기: 0.7, 기타: 0.6 };
   A.route('textbook', async (view) => {
     const [annos, docs] = await Promise.all([A.DB.all('annotations'), A.DB.all('documents')]);
+    annos.forEach(normalizeDoc);
     const sel = new Set(annos.map((a) => a.id));
     const att = new Set();
     let density = A.Settings.get().annotation.density, target = 0;
@@ -228,10 +266,10 @@ ${doc.text}`;
     function draw() {
       root.innerHTML = '';
       const units = annos.filter((a) => sel.has(a.id));
-      const per = units.map((u) => ({ u, pages: estimatePages(u, u.notes.filter((n) => n.start >= 0 && !n.hidden && (n.pinned || n.level <= density))) }));
+      const per = units.map((u) => ({ u, pages: estimatePages(u, u.notes.filter((n) => n.start >= 0 && !n.hidden && (n.pinned || rankOf(n) <= density))) }));
       const total = Math.round(per.reduce((a, x) => a + x.pages, 0) * 10) / 10;
       let fitDensity = density;
-      if (target > 0) { for (let d = 5; d >= 1; d--) { const t = units.reduce((a, u) => a + estimatePages(u, u.notes.filter((n) => n.start >= 0 && !n.hidden && (n.pinned || n.level <= d))), 0); if (t <= target) { fitDensity = d; break; } fitDensity = 1; } }
+      if (target > 0) { for (let d = DMAX; d >= 1; d--) { const t = units.reduce((a, u) => a + estimatePages(u, u.notes.filter((n) => n.start >= 0 && !n.hidden && (n.pinned || rankOf(n) <= d))), 0); if (t <= target) { fitDensity = d; break; } fitDensity = 1; } }
       root.append(
         h('div', { class: 'page-head' }, h('div', null, h('h1', null, '주석교재'), h('p', null, '주석 단 작품을 묶어 교재를 만듭니다. 학교 프린트·교사용 교과서 같은 첨부자료는 역할별 가중치로 반영합니다.'))),
         h('div', { class: 'grid2' },
@@ -242,12 +280,12 @@ ${doc.text}`;
               h('td', { class: 'num small' }, (per.find((x) => x.u.id === a.id)?.pages ?? '-') + '쪽'))))) : h('div', { class: 'empty' }, '주석 달기에서 작품을 저장하면 여기서 묶을 수 있어요.'))),
           h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, '필기량 = 분량 예산')),
             h('div', { class: 'card-b stack' },
-              h('div', { class: 'dens' }, h('span', { class: 'lbl' }, '필기량'), h('input', { type: 'range', min: 1, max: 5, value: density, oninput: (e) => { density = +e.target.value; draw(); } }), h('b', { class: 'small' }, `${density} ${DENS[density]}`)),
+              h('div', { class: 'dens' }, h('span', { class: 'lbl' }, '필기량'), h('input', { type: 'range', min: 1, max: DMAX, value: density, 'aria-label': '필기량 (1~20)', oninput: (e) => { density = +e.target.value; draw(); } }), h('b', { class: 'small num' }, `${density}/${DMAX} · ${densLabel(density)}`)),
               h('div', { class: 'row' }, h('span', { class: 'small' }, '목표 쪽수'), h('input', { class: 'input', type: 'number', min: 0, value: target || '', placeholder: '없음', style: { width: '90px' }, oninput: (e) => { target = +e.target.value || 0; draw(); } }),
                 target ? h('span', { class: 'chip ' + (fitDensity === density ? 'ok' : 'warn') }, `맞추려면 필기량 ${fitDensity}`) : null,
                 target && fitDensity !== density ? h('button', { class: 'btn sm', onclick: () => { density = fitDensity; draw(); } }, '적용') : null),
               h('div', { class: 'stats' }, h('div', { class: 'stat' }, h('div', { class: 'k' }, '예상 분량 (B4 2단)'), h('div', { class: 'v' }, total + '쪽')), h('div', { class: 'stat' }, h('div', { class: 'k' }, '첨부자료'), h('div', { class: 'v' }, att.size + '개'))),
-              h('div', { class: 'small muted' }, '단계별 구성: 1 출제포인트·기출 → 2 +핵심 어휘 → 3 +표현법·화자 → 4 +현대어 풀이·배경 → 5 +문법·첨부자료 전부'))),
+              h('div', { class: 'small muted' }, '단계별 구성: 1~4 핵심만(출제포인트·기출) → 5~8 간결(+핵심 어휘) → 9~12 보통(+표현법·화자) → 13~16 풍부(+현대어 풀이·배경) → 17~20 촘촘(+문법·보충 전부)'))),
           h('div', { class: 'card', style: { gridColumn: '1 / -1' } }, h('div', { class: 'card-h' }, h('h3', null, '첨부자료 (역할별 가중치)'), h('a', { href: '#/exam?mode=text', class: 'small' }, '첨부자료 텍스트화하기')),
             h('div', { class: 'card-b' }, docs.length ? h('table', { class: 'tbl' }, h('thead', null, h('tr', null, ['', '자료', '역할', '가중치', '지문 정렬'].map((t) => h('th', null, t)))), h('tbody', null, docs.map((d) => h('tr', null,
               h('td', null, h('input', { type: 'checkbox', checked: att.has(d.id), onchange: (e) => { e.target.checked ? att.add(d.id) : att.delete(d.id); draw(); } })),

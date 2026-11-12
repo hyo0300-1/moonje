@@ -23,7 +23,7 @@
   function defaults() {
     const s = A.Settings.get();
     return {
-      name: '기본 · ' + s.brand.academyName + ' 시험지', paper: s.output.paper || 'B4', columns: 2, fontPt: 10, lineSpacing: 1.65, margin: 14, accent: s.brand.accent,
+      name: '기본 · ' + s.brand.academyName + ' 시험지', paper: s.output.paper || 'B4', columns: 2, fontFamily: '', fontPt: 10, lineSpacing: 1.65, margin: 14, accent: s.brand.accent,
       brand: { academyName: s.brand.academyName, title: '', sub: '국어 영역', footerText: s.brand.footerText, pageNumbers: true },
       slots: {
         header: { mode: 'auto', asset: null, fit: 'cover', fx: 50, fy: 50, height: 22, opacity: 1, pages: 'all', textColor: 'auto' },
@@ -142,6 +142,9 @@
         p.append(
           h('div', { class: 'wb-sec' }, h('h4', null, '용지'), segc([['A4', 'A4 (210×297)'], ['B4', 'B4 (257×364)']], st.paper, (v) => commit((s) => { s.paper = v; }))),
           h('div', { class: 'wb-sec' }, h('h4', null, '단'), segc([[1, '1단'], [2, '2단']], st.columns, (v) => commit((s) => { s.columns = v; }))),
+          h('div', { class: 'wb-sec' }, h('h4', null, '본문 글꼴'),
+            A.fonts.select(st.fontFamily, (v) => commit((s) => { s.fontFamily = v; }), { allowInherit: true, inheritLabel: `설정 따름 (${A.fonts.nameOf(A.Settings.get().fonts.paper)})`, label: '시험지 본문 글꼴', style: { width: '100%' } }),
+            h('div', { class: 'tiny muted', style: { marginTop: '6px' } }, '이 시험지에만 적용돼요. 기본 글꼴은 설정 > 글꼴에서 바꿔요.')),
           h('div', { class: 'wb-sec stack', style: { gap: '8px' } }, h('h4', null, '본문'),
             range('글자 크기', () => st.fontPt, (s, v) => (s.fontPt = v), 8, 13, 0.5, (v) => v + 'pt'),
             range('줄 간격', () => st.lineSpacing, (s, v) => (s.lineSpacing = v), 1.3, 2.2, 0.05, (v) => Math.round(v * 100) + '%'),
@@ -215,7 +218,8 @@
 
     function makeSheet(i, title, total) {
       const [wmm, hmm] = PAPER[st.paper];
-      const sheet = h('div', { class: 'sheet', style: { width: wmm * MM + 'px', height: hmm * MM + 'px', padding: `${st.margin * MM}px`, fontSize: st.fontPt + 'pt', lineHeight: st.lineSpacing } });
+      if (st.fontFamily) A.fonts.ensure(st.fontFamily);
+      const sheet = h('div', { class: 'sheet', style: { width: wmm * MM + 'px', height: hmm * MM + 'px', padding: `${st.margin * MM}px`, fontSize: st.fontPt + 'pt', fontFamily: st.fontFamily ? A.fonts.stackOf(st.fontFamily, 'paper') : null, lineHeight: st.lineSpacing } });
       const hs = st.slots.header;
       if (hs.mode !== 'none' && headerApplies(i)) {
         const asset = hs.asset && assets.get(hs.asset);

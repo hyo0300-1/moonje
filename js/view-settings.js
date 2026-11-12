@@ -3,7 +3,7 @@
   'use strict';
   const { h, esc } = A;
   const SECTIONS = [
-    ['account', '계정'], ['brand', '학원 브랜드'], ['output', '출력 기본값'], ['annotation', '주석 기본값'],
+    ['account', '계정'], ['brand', '학원 브랜드'], ['output', '출력 기본값'], ['fonts', '글꼴'], ['annotation', '주석 기본값'],
     ['ai', 'AI 모델'], ['ocr', '글자 읽기(OCR)'], ['agent', 'API·에이전트'], ['notify', '알림'], ['history', '변경 기록'], ['danger', '데이터 관리'],
   ];
   const get = (o, path) => path.split('.').reduce((a, k) => a?.[k], o);
@@ -75,8 +75,9 @@
           row('output.answerPlacement', '정답 위치', '문항 뒤 미주 또는 시험지 끝', seg('output.answerPlacement', [['inline', '문항 뒤'], ['end', '시험지 끝']])),
           row('output.quickAnswers', '빠른 정답', '해설 앞에 한 줄 5문항 정답표', toggle('output.quickAnswers')),
           row('output.promptTitles', '유형 제목 표시', '문제 묶음 앞에 유형명', toggle('output.promptTitles'))),
+        fontsSection(sec),
         sec('annotation', '주석 기본값', '주석 달기와 주석교재의 시작값입니다.',
-          row('annotation.density', '필기량', '1 핵심만 ~ 5 촘촘 · 바꿔도 다시 생성하지 않아요', select('annotation.density', [[1, '1 핵심만'], [2, '2 간결'], [3, '3 보통'], [4, '4 풍부'], [5, '5 촘촘']])),
+          row('annotation.density', '필기량', '1 핵심만 ~ 20 촘촘 · 바꿔도 다시 생성하지 않아요', select('annotation.density', Array.from({ length: 20 }, (_, i) => [i + 1, `${i + 1} · ${['핵심만', '간결', '보통', '풍부', '촘촘'][Math.floor(i / 4)]}`]))),
           row('annotation.layout', '레이아웃', '', seg('annotation.layout', [['wing', '날개형'], ['note', '노트형'], ['blank', '빈칸형']])),
           row('annotation.autoHighlight', '형광펜 자동 표시', '주석이 붙은 구절에 색 밑줄', toggle('annotation.autoHighlight'))),
         aiSection(sec),
@@ -108,6 +109,44 @@
         h('div', { class: 'settings' }, nav, content));
       refreshBar();
     }
+    // ---------- 글꼴 구역 ----------
+    let localList = null;
+    function fontsSection(sec) {
+      const f = draft.fonts;
+      const pick = (role) => A.fonts.select(f[role], (v) => { update('fonts.' + role, v); draw(); }, { label: A.fonts.ROLES[role], style: { width: '100%' } });
+      const size = (key, min, max) => h('div', { class: 'row', style: { flexWrap: 'nowrap' } },
+        h('button', { class: 'btn sm icon-btn', 'aria-label': '작게', onclick: () => { update('fonts.' + key, Math.max(min, f[key] - 1)); draw(); } }, '−'),
+        h('span', { class: 'num', style: { minWidth: '44px', textAlign: 'center' } }, f[key] + 'px'),
+        h('button', { class: 'btn sm icon-btn', 'aria-label': '크게', onclick: () => { update('fonts.' + key, Math.min(max, f[key] + 1)); draw(); } }, '+'));
+      const preview = h('div', { style: { border: '1px solid var(--line)', borderRadius: '8px', padding: '14px 16px', background: '#fff', color: '#18181b', width: '100%' } },
+        h('div', { style: { fontFamily: A.fonts.stackOf(f.paper, 'paper'), fontSize: f.paperSize + 'px', lineHeight: 2 } }, '나 보기가 역겨워 가실 때에는 말없이 고이 보내 드리우리다.'),
+        h('div', { style: { fontFamily: A.fonts.stackOf(f.note, 'note'), fontSize: f.noteSize + 'px', borderLeft: '3px solid #9333ea', padding: '2px 8px', background: '#fafafa', marginTop: '4px' } }, '표현법 · 반어: 슬픔을 억누르며 임을 보내는 태도'),
+        h('div', { style: { fontFamily: A.fonts.stackOf(f.ui, 'ui'), fontSize: '13px', color: '#71717a', marginTop: '8px' } }, '화면 글꼴: 메뉴·버튼·설명 글자'));
+      const fileIn = h('input', { type: 'file', accept: '.ttf,.otf,.woff,.woff2', class: 'hidden', onchange: async (e) => {
+        const file = e.target.files[0]; e.target.value = '';
+        if (!file) return;
+        try { const v = await A.fonts.upload(file); A.toast(`'${file.name}' 글꼴을 올렸어요. 어느 곳에 쓸지 골라 주세요.`); update('fonts.paper', v); draw(); } catch (err) { A.toast(err.message, 'bad'); }
+      } });
+      const uploads = A.fonts.custom.map((c) => h('div', { class: 'chain-item' }, h('span', { style: { flex: 1, fontFamily: `"${c.family}"` } }, c.name + ' · 가나다 국어 스튜디오'),
+        ['ui', 'paper', 'note'].map((r) => h('button', { class: 'btn sm ghost', onclick: () => { update('fonts.' + r, 'upload:' + c.id); draw(); } }, { ui: '화면', paper: '지문', note: '주석' }[r])),
+        h('button', { class: 'btn sm ghost danger', 'aria-label': `글꼴 삭제: ${c.name}`, onclick: async () => { if (!confirm(`'${c.name}' 글꼴을 지울까요?`)) return; await A.fonts.removeUpload(c.id); for (const r of ['ui', 'paper', 'note']) if (draft.fonts[r] === 'upload:' + c.id) update('fonts.' + r, r === 'paper' ? 'noto-serif' : 'pretendard'); draw(); } }, '삭제')));
+      let localSel = null;
+      const localBox = h('div', { class: 'stack', style: { gap: '6px', width: '100%' } },
+        h('div', { class: 'row', style: { flexWrap: 'nowrap' } },
+          h('button', { class: 'btn sm', onclick: async () => { try { localList = await A.fonts.localFamilies(); draw(); } catch (e) { A.toast(e.message, 'bad'); } } }, localList ? `설치 글꼴 ${localList.length}개` : '설치된 글꼴 불러오기'),
+          (localSel = localList ? h('select', { class: 'input', style: { flex: 1 } }, localList.map((n) => h('option', { value: n, style: { fontFamily: `"${n}"` } }, n))) : h('input', { class: 'input', placeholder: '또는 글꼴 이름 직접 입력 (예: 함초롬바탕)', style: { flex: 1 } }))),
+        h('div', { class: 'row' }, h('span', { class: 'small muted' }, '적용할 곳:'), ['ui', 'paper', 'note'].map((r) => h('button', { class: 'btn sm', onclick: () => { const n = (localSel.value || '').trim(); if (!n) return A.toast('글꼴을 고르거나 이름을 입력하세요', 'bad'); update('fonts.' + r, 'local:' + n); draw(); } }, A.fonts.ROLES[r]))));
+      return sec('fonts', '글꼴', '화면, 지문·시험지 본문, 주석의 글꼴과 크기를 따로 정합니다. 디자인 작업대에서는 자료마다 다르게 고를 수도 있어요.',
+        row('fonts.ui', '화면 글꼴', '메뉴·버튼·설명 글자 · 지금: ' + A.fonts.nameOf(f.ui), pick('ui')),
+        row('fonts.paper', '지문·시험지 본문', '주석 달기 원문, 시험지·교재 본문 · 지금: ' + A.fonts.nameOf(f.paper), pick('paper')),
+        row('fonts.paperSize', '지문 글자 크기', '화면에서 보는 주석 달기 원문 크기 (시험지 크기는 디자인 작업대에서)', size('paperSize', 11, 28)),
+        row('fonts.note', '주석 글꼴', '주석 카드 글자 · 손글씨 글꼴로 필기 느낌을 낼 수 있어요 · 지금: ' + A.fonts.nameOf(f.note), pick('note')),
+        row('fonts.noteSize', '주석 글자 크기', '', size('noteSize', 9, 20)),
+        row('fonts.preview', '미리보기', '저장 전에 여기서 먼저 확인하세요', preview),
+        row('fonts.upload', '글꼴 파일 올리기', 'TTF·OTF·WOFF·WOFF2, 15MB 이하 · 이 브라우저에 저장되고 백업 파일에도 포함', h('div', { class: 'stack', style: { gap: '6px', width: '100%' } }, h('button', { class: 'btn sm', onclick: () => fileIn.click() }, '글꼴 파일 고르기'), fileIn, uploads)),
+        row('fonts.local', '내 컴퓨터 글꼴', '이 컴퓨터에 설치된 글꼴을 그대로 씁니다. 다른 컴퓨터에서는 보이지 않을 수 있어요', localBox));
+    }
+
     // ---------- AI 모델 구역 ----------
     const L = window.KSLLM;
     const testResult = {};
